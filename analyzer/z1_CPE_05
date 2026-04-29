@@ -1,0 +1,510 @@
+          
+                
+'  fallback이완료됨 ======================================================================================================================================================================================
+                      
+fallback_end:
+
+               fast_return = False
+               slow_return = False
+                      
+               If order_selection <> 1 Then '0th order 아닌 경우에만 regression
+                      
+                    Call regression(k_ArrX, k_ArrY, d_ArrX, d_ArrY, K_SIZE_X, K_SIZE_Y, kn_X, kn_Y, X_ArrX, X_ArrY, Xt_ArrX, Xt_ArrY, inverse_k_Arr_X, inverse_k_Arr_Y)
+                 Else
+                 
+                    Dim trans_x As Variant
+                    Dim trans_y As Variant
+                    ReDim kn_X(1) As Variant
+                    ReDim kn_Y(1) As Variant
+                    
+                    trans_x = 0
+                    trans_y = 0
+                    
+                    For count = 1 To valid_count
+                    
+                        trans_x = trans_x + raw_ArrX(count)
+                        trans_y = trans_y + raw_ArrY(count)
+                    
+                    Next count
+                    
+                    trans_x = trans_x / valid_count
+                    trans_y = trans_y / valid_count
+                    kn_X(1) = trans_x
+                    kn_Y(1) = trans_y
+                      
+                End If
+                
+                
+                
+                
+                
+                
+                
+'   Regression 결과 기록하기   ===================================================================================================================================================================================
+                
+                
+                
+                K_SIZE = K_SIZE_X + K_SIZE_Y
+                
+                If order_selection = 1 Then '0th order
+                    K_SIZE = 2
+                End If
+                
+ 
+                ThisWorkbook.Sheets("CPE").Cells(shots + 6, 23).value = wafer
+                
+                If Ridge_regression = True Then
+                
+                   max_Ridge_parameter_XY = Ridge_parameter_XY(1)
+                   max_Ridge_parameter_X = Ridge_parameter_XY(1)
+                   max_Ridge_parameter_Y = Ridge_parameter_XY(2)
+                   
+                   For i = 1 To max_K_SIZE
+                    
+                     If Ridge_parameter_XY(i) > max_Ridge_parameter_XY Then
+                        max_Ridge_parameter_XY = Ridge_parameter_XY(i)
+                     End If
+                     
+                   Next i
+                   ramda = Round(max_Ridge_parameter_XY, 3)
+                  
+                    For i = 1 To K_SIZE_X
+                    
+                       If Ridge_parameter_XY(display_order_x(i)) > max_Ridge_parameter_X Then
+                          max_Ridge_parameter_X = Ridge_parameter_XY(display_order_x(i))
+                       End If
+                       
+                    Next i
+                    
+                   ramda_x = Round(max_Ridge_parameter_X, 3)
+                    
+                    For i = 1 To K_SIZE_Y
+                    
+                       If Ridge_parameter_XY(display_order_y(i)) > max_Ridge_parameter_Y Then
+                          max_Ridge_parameter_Y = Ridge_parameter_XY(display_order_y(i))
+                       End If
+                       
+                    Next i
+                     ramda_y = Round(max_Ridge_parameter_Y, 3)
+
+                Else
+                
+                    ramda = 0
+                    ramda_x = 0
+                    ramda_y = 0
+                  
+                End If
+                
+                
+                max_X_hat_ii = WorksheetFunction.RoundDown(max_X_hat_ii, 3)
+                max_Y_hat_ii = WorksheetFunction.RoundDown(max_Y_hat_ii, 3)
+                
+                
+                metro_ratio = Round(valid_count / real_points, 2)
+                 
+                
+                
+'              ThisWorkbook.Sheets("CPE").Cells(shots + 6, 24).Value = "R(" & ramda & "[" & count_prevent_fallback_retrun & "/" & count_span_retrun & "] " & K_SIZE & "P)_S(" & inner_or_partial & ")_F(" & valid_count & "/" & virtual_points & ")_G(" & origin_max_X_hat_ii & "/" & origin_max_Y_hat_ii & ")"
+'               ThisWorkbook.Sheets("CPE").Cells(shots + 6, 24).Value = "R(" & ramda & "[" & count_prevent_fallback_retrun & "/" & count_span_retrun & "] " & K_SIZE & "P)_M(" & metro_ratio & ")_F(" & valid_count & "/" & real_points & "/" & virtual_points & ")_G" & G_optimal_name & "(" & max_X_hat_ii & "/" & max_Y_hat_ii & ")"
+               
+                
+                
+               ThisWorkbook.Sheets("CPE").Cells(shots + 6, 25).value = Regression_code
+               ThisWorkbook.Sheets("CPE").Cells(shots + 6, 26).value = Loc_W_ArrX
+               ThisWorkbook.Sheets("CPE").Cells(shots + 6, 27).value = Loc_W_ArrY
+               ThisWorkbook.Sheets("CPE").Cells(shots + 6, 30).value = Loc_W_ArrX * step_pitch_x + ShiftX
+               ThisWorkbook.Sheets("CPE").Cells(shots + 6, 31).value = Loc_W_ArrY * step_pitch_y + ShiftY
+               
+               Select Case unit_display
+               
+                Case 1
+                
+                   sub_nano = "0.000_ "
+                   
+                Case 2, 3
+                    sub_nano = "0.00000_ "
+                   
+               End Select
+                       
+
+                
+               If order_selection = 1 Then  '0th oder
+               
+                        If unit_display = 1 Then ' nm 단위
+                            k = display_order_x(1)
+                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).value = kn_X(1) / multi_x(1) / maxK_reticle(k) * 10
+                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).NumberFormatLocal = sub_nano
+                                
+                            k = display_order_y(1)
+                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).value = kn_Y(1) / multi_y(1) / maxK_reticle(k) * 10
+                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).NumberFormatLocal = sub_nano
+                
+                        Else                     ' ASML 단위 & Canon 단위
+                            k = display_order_x(1)
+                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).value = kn_X(1) / multi_x(1)
+                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).NumberFormatLocal = sub_nano
+                                
+                            k = display_order_y(1)
+                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).value = kn_Y(1) / multi_y(1)
+                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).NumberFormatLocal = sub_nano
+                
+                        End If
+                
+                        
+                        
+                        
+                
+                
+                Else
+                    
+                        is_span_over = False
+                        
+                     
+   '   하강법   ========================================================================
+   
+                        Balloon = ThisWorkbook.Sheets("Option table").Range("D82").value
+   
+   
+   
+                        ReDim Ridge_parameter_x(K_SIZE_X) As Variant
+                        ReDim Ridge_parameter_y(K_SIZE_Y) As Variant
+                        ReDim max_Span_X(K_SIZE_X) As Variant
+                        ReDim min_Span_X(K_SIZE_X) As Variant
+                        ReDim max_Span_Y(K_SIZE_Y) As Variant
+                        ReDim min_Span_Y(K_SIZE_Y) As Variant
+   
+                        For i = 1 To K_SIZE_X
+                        
+                            k = display_order_x(i)
+                            Ridge_parameter_x(i) = Ridge_parameter_XY(k)
+                            max_Span_X(i) = Span_XY(k) * Abs(multi_x(i)) * maxK_reticle(k) / 10
+                            min_Span_X(i) = -Span_XY(k) * Abs(multi_x(i)) * maxK_reticle(k) / 10
+                        Next i
+                        
+                        For i = 1 To K_SIZE_Y
+                            k = display_order_y(i)
+                            Ridge_parameter_y(i) = Ridge_parameter_XY(k)
+                            max_Span_Y(i) = Span_XY(k) * Abs(multi_y(i)) * maxK_reticle(k) / 10
+                            min_Span_Y(i) = -Span_XY(k) * Abs(multi_y(i)) * maxK_reticle(k) / 10
+                        Next i
+                        
+                        
+                       
+                        
+                        span_over_x = 0
+                        span_over_y = 0
+                        count_span_retrun_x = 0
+                        count_span_retrun_y = 0
+    '                  ==================================================================================================================================
+                        
+                        
+                        
+                        For n = 1 To K_SIZE_X
+                        
+                                     k = display_order_x(n)
+                                      
+                                     value_k_x = Abs(kn_X(n) / multi_x(n) / maxK_reticle(k) * 10) 'nm 단위
+                                     span_k_x = Span_XY(k)   'nm 단위
+                                     delta_k_x = value_k_x - span_k_x
+                                     
+                                     
+                                     If unit_display = 1 Then ' nm 단위
+                                        ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).value = kn_X(n) / multi_x(n) / maxK_reticle(k) * 10
+                                        ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).NumberFormatLocal = sub_nano
+                                     Else                     ' ASML & Canon 단위
+                                        ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).value = kn_X(n) / multi_x(n)
+                                        ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).NumberFormatLocal = sub_nano
+                                     End If
+                                     
+                                     
+                                     If ridge_logging = True Then
+                                     
+                                        ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k + 342).value = Ridge_parameter_XY(k)
+                                        ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k + 342).NumberFormatLocal = "0.000_ "
+                                     
+                                     End If
+                                                                         
+                                                                        
+                            
+                                    If (span_k_x <> Empty) Then ' limit spec이 있을경우
+                                       
+                                       Select Case delta_k_x
+                                                   
+                                          Case Is > 0  'span over
+                                          
+                                                                           
+                                                 ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.ColorIndex = 3 'red
+                                                 ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.Bold = True
+    
+                                                span_over_x = span_over_x + 1
+                                              
+                                         Case Else
+                                         
+                                                ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.ColorIndex = 1  'black
+                                                ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.Bold = False
+                                                
+                                        End Select
+                                        
+  
+                                        
+                                    Else  ' limit spec이 없을경우
+                                    
+                                        
+                                        ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.ColorIndex = 1  'black
+                                        ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.Bold = False
+             
+                                    End If
+                                    
+    
+                            
+                        Next n
+                        
+                    
+                        
+                        If (span_over_x <> 0) And (Ridge_regression = True) Then
+                        
+'                        ===============================================================================================
+'                            Call RidgeBoxPGD_Matrix(X_ArrX, raw_ArrX, kn_X, Ridge_parameter_X, min_Span_X, max_Span_X, eta, tol, max_iter, count_span_retrun_x)
+'                            Call RidgeBoxPGD_eta(X_ArrX, raw_ArrX, kn_X, Ridge_parameter_X, min_Span_X, max_Span_X, eta, tol, divergence_criteria, max_iter, count_span_retrun_x)
+                            
+                            Select Case Balloon
+                             Case 1
+'                             경사하강법
+                            Call ProjectedGradientDescentRidge(X_ArrX, raw_ArrX, kn_X, Ridge_parameter_x, min_Span_X, max_Span_X, eta, tol, max_iter, count_span_retrun_x, LearningRate_X)
+                             
+                             Case 2
+'                            좌표하강법
+'                            Call ProjectedCoordinateDescentRidge(X_ArrX, raw_ArrX, kn_X, Ridge_parameter_x, min_Span_X, max_Span_X, tol, max_iter, count_span_retrun_x)
+                            Call ProjectedCoordinateDescentElasticNet(X_ArrX, raw_ArrX, kn_X, Ridge_parameter_x, 0, min_Span_X, max_Span_X, tol, max_iter, count_span_retrun_x)
+                          End Select
+'                        ===============================================================================================
+
+                            For n = 1 To K_SIZE_X
+                            
+                                          k = display_order_x(n)
+                                          value_k_x = Abs(kn_X(n) / multi_x(n) / maxK_reticle(k) * 10) 'nm 단위
+                                          span_k_x = Span_XY(k)   'nm 단위
+                                          delta_k_x = Round(value_k_x - span_k_x, 8)
+                                          
+                                         If unit_display = 1 Then ' nm 단위
+                                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).value = kn_X(n) / multi_x(n) / maxK_reticle(k) * 10
+                                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).NumberFormatLocal = sub_nano
+                                         Else                     ' ASML & Canon 단위
+                                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).value = kn_X(n) / multi_x(n)
+                                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).NumberFormatLocal = sub_nano
+                                         End If
+                                         
+                                           Select Case delta_k_x
+                                                   
+                                          Case Is > 0  'span over
+                                          
+                                                                           
+                                                 ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.ColorIndex = 3 'red
+                                                 ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.Bold = True
+    
+                                                span_over_x = span_over_x + 1
+                                              
+                                         Case Else
+                                         
+                                                ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.ColorIndex = 1  'black
+                                                ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.Bold = False
+                                                
+                                        End Select
+                                         
+                                         If ridge_logging = True Then
+                                         
+                                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k + 342).value = Ridge_parameter_XY(k)
+                                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k + 342).NumberFormatLocal = "0.000_ "
+                                         
+                                         End If
+                                                         
+                            
+                            Next n
+                        
+                      End If
+                      
+                      
+'                      ====================================================================================================
+
+                           
+
+                         For n = 1 To K_SIZE_Y
+                        
+                                     k = display_order_y(n)
+                                     
+            
+                                     
+                                     value_k_y = Abs(kn_Y(n) / multi_y(n) / maxK_reticle(k) * 10) 'nm 단위
+                                     span_k_y = Span_XY(k)                                        'nm 단위
+                                     delta_k_y = value_k_y - span_k_y
+                                    
+                                    If unit_display = 1 Then ' nm 단위
+                                        ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).value = kn_Y(n) / multi_y(n) / maxK_reticle(k) * 10
+                                        ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).NumberFormatLocal = sub_nano
+                                    Else                      ' ASML & Canon 단위
+                                        ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).value = kn_Y(n) / multi_y(n)
+                                        ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).NumberFormatLocal = sub_nano
+                                    End If
+                                    
+                                    
+                                    If ridge_logging = True Then
+                                     
+                                        ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k + 342).value = Ridge_parameter_XY(k)
+                                        ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k + 342).NumberFormatLocal = "0.000_ "
+                                     
+                                    End If
+                                     
+                                    
+                                    
+                                    If (span_k_y <> Empty) Then  ' limit spec이 있을경우
+                                       
+                                        Select Case delta_k_y
+                                       
+                                       
+                                            Case Is > 0  'span over
+                                          
+                                                     ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.ColorIndex = 3 'red
+                                                     ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.Bold = True
+                                                      span_over_y = span_over_y + 1
+                                             
+                                          Case Else
+                                            
+                                             ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.ColorIndex = 1  'black
+                                             ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.Bold = False
+                       
+                                            
+                                         End Select
+                                        
+                                    Else             ' limit spec이 없을경우
+                                       
+                                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.ColorIndex = 1  'black
+                                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.Bold = False
+                                       
+                                    End If
+                        
+                            
+                        Next n
+                        
+                        If (span_over_y <> 0) And (Ridge_regression = True) Then
+                        
+'                        ===============================================================================================
+'                            Call RidgeBoxPGD_Matrix(X_ArrY, raw_ArrY, kn_Y, Ridge_parameter_Y, min_Span_Y, max_Span_Y, eta, tol, max_iter, count_span_retrun_y)
+'                            Call RidgeBoxPGD_eta(X_ArrY, raw_ArrY, kn_Y, Ridge_parameter_Y, min_Span_Y, max_Span_Y, eta, tol, divergence_criteria, max_iter, count_span_retrun_y)
+                            
+                            Select Case Balloon
+                              Case 1
+'                             경사하강법
+                                Call ProjectedGradientDescentRidge(X_ArrY, raw_ArrY, kn_Y, Ridge_parameter_y, min_Span_Y, max_Span_Y, eta, tol, max_iter, count_span_retrun_y, LearningRate_Y)
+                              Case 2
+'                            좌표하강법
+'                                Call ProjectedCoordinateDescentRidge(X_ArrY, raw_ArrY, kn_Y, Ridge_parameter_y, min_Span_Y, max_Span_Y, tol, max_iter, count_span_retrun_y)
+                                Call ProjectedCoordinateDescentElasticNet(X_ArrY, raw_ArrY, kn_Y, Ridge_parameter_y, 0, min_Span_Y, max_Span_Y, tol, max_iter, count_span_retrun_y)
+                             End Select
+'                        ===============================================================================================
+                            For n = 1 To K_SIZE_Y
+                            
+                                          k = display_order_y(n)
+                                          value_k_y = Abs(kn_Y(n) / multi_y(n) / maxK_reticle(k) * 10) 'nm 단위
+                                          span_k_y = Span_XY(k)                                        'nm 단위
+                                          delta_k_y = Round(value_k_y - span_k_y, 8)
+                                        
+                                         If unit_display = 1 Then ' nm 단위
+                                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).value = kn_Y(n) / multi_y(n) / maxK_reticle(k) * 10
+                                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).NumberFormatLocal = sub_nano
+                                         Else                     ' ASML & Canon 단위
+                                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).value = kn_Y(n) / multi_y(n)
+                                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).NumberFormatLocal = sub_nano
+                                         End If
+                                         
+                                          Select Case delta_k_y
+                                       
+                                       
+                                            Case Is > 0  'span over
+                                          
+                                                     ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.ColorIndex = 3 'red
+                                                     ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.Bold = True
+                                                      span_over_y = span_over_y + 1
+                                             
+                                          Case Else
+                                            
+                                             ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.ColorIndex = 1  'black
+                                             ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k).Font.Bold = False
+                       
+                                            
+                                         End Select
+                                         
+                                         If ridge_logging = True Then
+                                         
+                                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k + 342).value = Ridge_parameter_XY(k)
+                                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, RK_start + k + 342).NumberFormatLocal = "0.000_ "
+                                         
+                                         End If
+                                                         
+                            
+                            Next n
+                        
+                      End If
+                      
+                      
+                End If
+                 count_span_retrun = count_span_retrun_x + count_span_retrun_y
+                 
+                ThisWorkbook.Sheets("CPE").Cells(shots + 6, 24).value = "R(" & ramda_x & "/" & ramda_y & "[" & count_prevent_fallback_retrun & "/" & count_span_retrun & "] " & K_SIZE & "P)_M(" & metro_ratio & ")_F(" & valid_count & "/" & real_points & "/" & virtual_points & ")_G" & G_optimal_name & "(" & max_X_hat_ii & "/" & max_Y_hat_ii & ")"
+
+                
+
+                                 
+dummy_shot_jump:
+               
+            g = 1
+                
+                
+             
+            End If
+             
+            
+            F = F + 1
+    
+
+           
+  Loop
+  
+
+ '======================================================================================================
+    On Error Resume Next
+    
+       Application.DisplayAlerts = False
+       
+       Sheets("CPE_Raw").Select
+       Sheets("CPE_Raw").Delete
+       Sheets("CPE_Residual").Select
+       Sheets("CPE_Residual").Delete
+       Sheets("CPE_fitting").Select
+       Sheets("CPE_fitting").Delete
+       Sheets("CPE_information").Select
+       Sheets("CPE_information").Delete
+    On Error GoTo 0
+ 
+ 
+    Sheets("CPE").Select
+ 
+ '=====================================================================================================
+ 
+
+    Application.StatusBar = "CPE Regression completed."
+
+    Exit Sub
+ 
+'Error handler=========================================================================================================================
+minverse_fail:
+           
+    Call Matrix_Inverse(k_ArrX, k_ArrY, K_SIZE_X, K_SIZE_Y, inverse_k_Arr_X, inverse_k_Arr_Y)  'XTX의 Inverse값 구하기위해 사용
+    
+    Resume Next
+
+  
+  End Sub
+
+
+
+
