@@ -1,0 +1,770 @@
+
+ 
+ 'Shot별 계산시작==================================================================================================================================================================
+ 
+    If interpolation_TPS = True Then
+    
+       TPS_type = ThisWorkbook.Sheets("Option table").Range("D66").value
+    
+      Call select_TPS
+       
+       col_S = 16
+       
+     Else
+     
+       col_S = 2
+       
+    End If
+    
+ ' header ======================================================================================
+ 
+ CPE_regression_index = ThisWorkbook.Sheets("Option table").Cells(2 + regression_order, 12).value
+ 
+ 
+   If interpolation_TPS = True Then
+
+       
+       tpsLambda_inter = ThisWorkbook.Sheets("CPE").Range("T4").value
+       tpsLambda_intra = ThisWorkbook.Sheets("CPE").Range("U4").value
+       
+       unmeasured_point_only = ThisWorkbook.Sheets("Option table").Range("D63").value
+
+      Call index_select
+
+
+
+   Else
+   
+
+   
+        ThisWorkbook.Sheets("CPE").Cells(5, 9).value = "CPE Residual[" & CPE_regression_index & "]"
+        ThisWorkbook.Sheets("CPE").Cells(5, 16).value = "CPE Fitting[" & CPE_regression_index & "]"
+   End If
+     '==============================================================================================
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+ 
+Do While IsEmpty(ThisWorkbook.Sheets("CPE").Cells(F, col_S).value) = False
+ 
+    
+   
+        wafer1 = ThisWorkbook.Sheets("CPE").Cells(F, col_S).value
+        test1 = ThisWorkbook.Sheets("CPE").Cells(F, col_S + 1).value
+        LocX1 = ThisWorkbook.Sheets("CPE").Cells(F, col_S + 2).value
+        LocY1 = ThisWorkbook.Sheets("CPE").Cells(F, col_S + 3).value
+        dX1 = ThisWorkbook.Sheets("CPE").Cells(F, col_S + 4).value
+        dY1 = ThisWorkbook.Sheets("CPE").Cells(F, col_S + 5).value
+        
+        wafer2 = ThisWorkbook.Sheets("CPE").Cells(F + 1, col_S).value
+        test2 = ThisWorkbook.Sheets("CPE").Cells(F + 1, col_S + 1).value
+        LocX2 = ThisWorkbook.Sheets("CPE").Cells(F + 1, col_S + 2).value
+        LocY2 = ThisWorkbook.Sheets("CPE").Cells(F + 1, col_S + 3).value
+        dX2 = ThisWorkbook.Sheets("CPE").Cells(F + 1, col_S + 4).value
+        dY2 = ThisWorkbook.Sheets("CPE").Cells(F + 1, col_S + 5).value
+            
+            
+        If wafer1 = wafer2 And LocX1 = LocX2 And LocY1 = LocY2 Then
+           
+           
+            g = g + 1
+         
+        Else
+             
+            
+            
+            fast_return = False
+            slow_return = False
+              
+            ReDim wafer_Arr(g) As Variant
+            ReDim test_Arr(g) As Single
+            ReDim Loc_ArrX_X_axis(g) As Variant
+            ReDim Loc_ArrY_X_axis(g) As Variant
+            ReDim Loc_ArrX_Y_axis(g) As Variant
+            ReDim Loc_ArrY_Y_axis(g) As Variant
+            ReDim raw_ArrX(g) As Variant
+            ReDim raw_ArrY(g) As Variant
+
+
+            Dim Loc_W_ArrX As Single, Loc_W_ArrY As Single
+            Dim current_name As Variant
+            Dim virtual_points As Integer
+            
+    
+            
+            Die_LOC = LocX1 & "," & LocY1
+            virtual_points = 0
+            
+            
+            For s = 1 To total_shots
+            
+                If Die_LOC = shot_information(s).Die_No Then
+                                       
+                   virtual_points = shot_information(s).Points_virtual
+                   real_points = shot_information(s).Points_real
+                   shot = s
+                   
+                End If
+                
+            Next s
+        
+  '==============  dummy shot 제거
+  
+     If virtual_points = 0 Then GoTo dummy_shot_jump:
+             
+            
+            
+    '==============  1point 계측 shot 제거
+'
+'            If G = 1 Then
+'
+'             GoTo dummy_shot_jump:
+'
+'            End If
+            
+            
+            
+                     
+ '=====================================================================================================================================================================
+                     
+   '=======================================================================================================================================================================
+                     
+        
+            shots = shots + 1
+             
+
+'============================================================================================================================================================
+
+
+     fall_back = False
+     prevent_fall_back = False
+     is_span_over = False
+   
+
+return_point_fallback:
+
+            If fall_back = False Then
+            
+                order_selection = regression_order
+            
+            Else
+            
+                Select Case order_selection     'fallback시 차수 낮추기 정의
+                
+                
+ 
+                    Case 15
+                       temp_order_selection = 14   '  "OVO5(DUV): 170para" --> "OVO4(DUV): 57para"
+                    Case 14
+                       temp_order_selection = 12   '  "OVO4(DUV): 57para" --> "OVO3(DUV): 38para"
+                    Case 13
+                       temp_order_selection = 5   '  "OVO4(DUV): 39para" --> "3rd:15para"
+                    Case 12
+                       temp_order_selection = 5   '  "OVO3(DUV): 38para" --> "3rd:15para"
+                    Case 11
+                       temp_order_selection = 6   '  "OVO3(EUV): 35para" --> "3rd:18para"
+                    Case 10
+                       temp_order_selection = 6   '  "OVO3(EUV): 33para" --> "3rd:18para"
+                    Case 9
+                       temp_order_selection = 5   '  "OVO3(EUV): 22para" --> "3rd:15para"
+                    Case 8
+                       temp_order_selection = 2   '  "3rd:20para" --> "1st:6para"
+                    Case 7
+                       temp_order_selection = 2   '  "3rd:19para" --> "1st:6para"
+                    Case 6
+                       temp_order_selection = 2   '  "3rd:18para"" --> "1st:6para"
+                    Case 5
+                       temp_order_selection = 2   '  "3rd:15para" --> "1st:6para"
+                    Case 4
+                       temp_order_selection = 2   '  "3rd:12para" --> "1st:6para"
+                    Case 3
+                       temp_order_selection = 2   '  "2nd:11para" --> "1st:6para"
+                    Case 2
+                       temp_order_selection = 1   '  "1st:6para" --> "0th:2para"
+                
+                End Select
+                  
+                  
+                    order_selection = temp_order_selection
+                
+                
+                 
+                
+                End If
+                
+                      
+               Call regression_order_info(order_selection, max_K_SIZE, K_SIZE_X, K_SIZE_Y, multi_x, multi_y, display_order_x, display_order_y, Regression_code)
+                
+                valid_count = 0
+                valid_corner_count = 0
+                max_relative_location_X = 0
+                min_relative_location_X = 0
+                max_relative_location_Y = 0
+                min_relative_location_Y = 0
+                
+'           virtual make matrix===============================================================================================================================================
+'           ===========================================================================================================================================================
+        
+
+        
+        
+        
+        
+        
+                ReDim virtual_Loc_ArrX_X_axis(virtual_points) As Variant
+                ReDim virtual_Loc_ArrY_X_axis(virtual_points) As Variant
+                ReDim virtual_Loc_ArrX_Y_axis(virtual_points) As Variant
+                ReDim virtual_Loc_ArrY_Y_axis(virtual_points) As Variant
+                
+                Dim test_id As Integer
+                
+                
+                For count = 1 To virtual_points
+                
+                    test_id = Test_Arry(shot, count)
+                    
+                    virtual_Loc_ArrX_X_axis(count) = virtual_shotLOC_ArrX(test_id) / unit_factor_X
+                    virtual_Loc_ArrY_X_axis(count) = virtual_shotLOC_ArrY(test_id) / unit_factor_Y
+                    virtual_Loc_ArrX_Y_axis(count) = virtual_shotLOC_ArrX(test_id) / unit_factor_X
+                    virtual_Loc_ArrY_Y_axis(count) = virtual_shotLOC_ArrY(test_id) / unit_factor_Y
+                
+                
+                Next count
+                
+                
+                
+                Dim q, r As Integer
+                
+                ReDim virtual_eq_ArrX(1 To K_SIZE_X) As Variant
+                ReDim virtual_eq_ArrY(1 To K_SIZE_Y) As Variant
+                ReDim virtual_X_ArrX(virtual_points, K_SIZE_X) As Variant
+                ReDim virtual_X_ArrY(virtual_points, K_SIZE_Y) As Variant
+                ReDim virtual_Xt_ArrX(K_SIZE_X, virtual_points) As Variant
+                ReDim virtual_Xt_ArrY(K_SIZE_Y, virtual_points) As Variant
+                    
+                    
+                    
+                    
+                    
+                    
+'     virtual      ========================================================================
+        
+        
+                For count = 1 To virtual_points
+                
+                    Select Case order_selection
+                
+                        Case 1
+                            Call first_order_code7(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                        
+                        Case 2
+                            Call first_order_code7(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                        
+                        Case 3
+                            Call second_order_x47_y63(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                        
+                        Case 4
+                            Call third_order_stage_term_only(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                        
+                        Case 5
+                            Call SDM_S308(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                        
+                        Case 6
+                            Call third_order_x959_y511(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                                 
+                        Case 7
+                            Call third_order_x1023_y511(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                            
+                        Case 8
+                            Call third_order_code1023(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                         
+                        Case 9
+                            Call OVO3_22para(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                         
+                        Case 10
+                            Call OVO3_EUV(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                         
+                        Case 11
+                            Call OVO3_EUV_35p(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                                
+                        Case 12
+                            Call OVO3_DUV(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                            
+                        Case 13
+                            Call OVO4_39P(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                            
+                       Case 14
+                            Call OVO4_DUV(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                            
+                       Case 15
+                            Call OVO5_170p(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                            
+ 
+                     Case 16
+                            Call third_order_code407(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                            
+                     Case 17
+                            Call third_order_x275_y133(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                            
+                     Case 18
+                            Call third_order_x133_y275(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                            
+                     Case 99
+                            Call Seventeen_order_polysine_full(count, virtual_eq_ArrX, virtual_eq_ArrY, virtual_Loc_ArrX_X_axis, virtual_Loc_ArrY_X_axis, virtual_Loc_ArrX_Y_axis, virtual_Loc_ArrY_Y_axis)
+                            
+                            
+                    End Select
+        
+        
+'                X =====================================================================================
+    
+                     For m = 1 To K_SIZE_X
+                         virtual_X_ArrX(count, m) = virtual_eq_ArrX(m)   ' = X
+                         virtual_Xt_ArrX(m, count) = virtual_eq_ArrX(m)   ' = X'
+                     Next m
+'                Y =====================================================================================
+                     For m = 1 To K_SIZE_Y
+                        virtual_X_ArrY(count, m) = virtual_eq_ArrY(m)   ' = X
+                        virtual_Xt_ArrY(m, count) = virtual_eq_ArrY(m)   ' = X'
+                     Next m
+        
+                  Next count
+        
+        
+                     
+                      '=================================================================================================================================================================================
+                      '================================================================================================================================================================================
+                      
+                      
+
+                    For count = 1 To g
+                    
+                        wafer_Arr(count) = ThisWorkbook.Sheets("CPE").Cells(F - g + count, col_S).value
+                        test_Arr(count) = ThisWorkbook.Sheets("CPE").Cells(F - g + count, col_S + 1).value
+                        
+                        Loc_W_ArrX = ThisWorkbook.Sheets("CPE").Cells(F - g + count, col_S + 2).value
+                        Loc_W_ArrY = ThisWorkbook.Sheets("CPE").Cells(F - g + count, col_S + 3).value
+                        raw_ArrX(count) = ThisWorkbook.Sheets("CPE").Cells(F - g + count, col_S + 4).value
+                        raw_ArrY(count) = ThisWorkbook.Sheets("CPE").Cells(F - g + count, col_S + 5).value
+                    
+          
+                        wafer = wafer_Arr(count)
+                        test = test_Arr(count)
+                        
+                        
+                        
+            
+                        dx = raw_ArrX(count)
+                        dy = raw_ArrY(count)
+                       
+        
+                        
+                        valid_count = valid_count + 1
+                        
+' Fingerprint_removal option 처리 ====================================================================================================================
+                        If Fingerprint_removal = True Then
+                        
+                            raw_ArrX(valid_count) = dx - average_dx(test_Arr(count))
+                            raw_ArrY(valid_count) = dy - average_dy(test_Arr(count))
+                        
+                        Else
+                        
+                        
+                        
+                            raw_ArrX(valid_count) = dx
+                            raw_ArrY(valid_count) = dy
+                        
+                        End If
+                        
+'  ========================================================================================================================
+                        
+                        Loc_ArrX_X_axis(valid_count) = shotLOC_ArrX(test) / unit_factor_X
+                        Loc_ArrY_X_axis(valid_count) = shotLOC_ArrY(test) / unit_factor_Y
+                        Loc_ArrX_Y_axis(valid_count) = shotLOC_ArrX(test) / unit_factor_X
+                        Loc_ArrY_Y_axis(valid_count) = shotLOC_ArrY(test) / unit_factor_Y
+                        
+
+                      Next count
+'
+
+                     
+                     
+                     
+'  ===================================================================================================================================================================================
+                     
+'   ===================================================================================================================================================================================
+
+    count_span_retrun = 0
+    count_prevent_fallback_retrun = 0
+    
+    ReDim Span_over_count_XY(max_K_SIZE)
+    ReDim Span_over_min_ridge_XY(max_K_SIZE)
+    
+    
+    
+    ReDim Ridge_parameter_XY_initial(max_K_SIZE)
+    ReDim Ridge_parameter_XY_start(max_K_SIZE)
+    ReDim Ridge_parameter_XY_end(max_K_SIZE)
+    ReDim Ridge_parameter_XY_next(max_K_SIZE)
+    ReDim K_value_start(max_K_SIZE)
+    
+    
+    
+    
+    
+    Select Case fall_back
+    
+     Case True
+
+'        ramda_ridge_X = ThisWorkbook.Sheets("CPE").Range("U2").Value
+'        ramda_ridge_Y = ThisWorkbook.Sheets("CPE").Range("U2").Value
+'
+'        ramda_ridge_edge_X = ThisWorkbook.Sheets("CPE").Range("U3").Value
+'        ramda_ridge_edge_Y = ThisWorkbook.Sheets("CPE").Range("U3").Value
+        
+        ramda_ridge_X = 0
+        ramda_ridge_Y = 0
+        
+        ramda_ridge_edge_X = 0
+        ramda_ridge_edge_Y = 0
+        
+        
+        
+    
+     Case False
+    
+         Select Case fallback_option
+         
+          Case 4, 5
+           ramda_ridge_X = initial_ridge_X
+           ramda_ridge_Y = initial_ridge_Y
+           
+           ramda_ridge_edge_X = initial_ridge_X
+           ramda_ridge_edge_Y = initial_ridge_Y
+    
+          Case Else
+'           ramda_ridge_X = ThisWorkbook.Sheets("CPE").Range("U2").Value
+'           ramda_ridge_Y = ThisWorkbook.Sheets("CPE").Range("U2").Value
+'
+'           ramda_ridge_edge_X = ThisWorkbook.Sheets("CPE").Range("U3").Value
+'           ramda_ridge_edge_Y = ThisWorkbook.Sheets("CPE").Range("U3").Value
+           
+           ramda_ridge_X = 0
+           ramda_ridge_Y = 0
+        
+           ramda_ridge_edge_X = 0
+           ramda_ridge_edge_Y = 0
+           
+         End Select
+         
+    End Select
+    
+    
+    
+    
+     If virtual_points = Vgrid_XY Then '온전한 shot
+    
+        For k = 1 To max_K_SIZE Step 2
+        
+            
+            Select Case order_selection
+                     
+                Case 1 To 2
+                 
+                     Ridge_parameter_XY(k) = ramda_ridge_X * ridge_valve_1st(k)
+                     
+                Case 3 To 7
+                
+                     Ridge_parameter_XY(k) = ramda_ridge_X * ridge_valve_3rd(k)
+                     
+                Case Else
+                
+                     Ridge_parameter_XY(k) = ramda_ridge_X * ridge_valve_hyper(k)
+                            
+           End Select
+            
+        Next k
+        
+        For k = 2 To max_K_SIZE Step 2
+        
+            Select Case order_selection
+                     
+                Case 1 To 2
+                 
+                     Ridge_parameter_XY(k) = ramda_ridge_Y * ridge_valve_1st(k)
+                     
+                Case 3 To 7
+                
+                     Ridge_parameter_XY(k) = ramda_ridge_Y * ridge_valve_3rd(k)
+                     
+                Case Else
+                
+                     Ridge_parameter_XY(k) = ramda_ridge_Y * ridge_valve_hyper(k)
+                            
+           End Select
+            
+        Next k
+        
+        inner_or_partial = "inner"
+    
+     Else                               'edge shot
+    
+        For k = 1 To max_K_SIZE Step 2
+        
+           
+           Select Case order_selection
+                     
+                Case 1 To 2
+                 
+                     Ridge_parameter_XY(k) = ramda_ridge_edge_X * ridge_valve_1st(k)
+                     
+                Case 3 To 7
+                
+                     Ridge_parameter_XY(k) = ramda_ridge_edge_X * ridge_valve_3rd(k)
+                     
+                Case Else
+                
+                     Ridge_parameter_XY(k) = ramda_ridge_edge_X * ridge_valve_hyper(k)
+                            
+           End Select
+           
+        Next k
+        
+        For k = 2 To max_K_SIZE Step 2
+        
+           Select Case order_selection
+                     
+                Case 1 To 2
+                 
+                     Ridge_parameter_XY(k) = ramda_ridge_edge_Y * ridge_valve_1st(k)
+                     
+                Case 3 To 7
+                
+                     Ridge_parameter_XY(k) = ramda_ridge_edge_Y * ridge_valve_3rd(k)
+                     
+                Case Else
+                
+                     Ridge_parameter_XY(k) = ramda_ridge_edge_Y * ridge_valve_hyper(k)
+                            
+           End Select
+           
+        Next k
+                
+        inner_or_partial = "partial"
+    End If
+    
+    
+    
+    Select Case G_optimal_type
+    
+       Case 1
+       
+         G_optimal_name = "OT1"   ' H_t2 * HT_t2
+        
+       Case 2
+        
+         G_optimal_name = "OT2"   ' X_eval * (XT_meas*X_meas)-1 * XT_meas
+         
+         
+       Case 3
+        
+         G_optimal_name = "OT3"    ' X_eval * (XT_meas*X_meas)-1 * XT_eval
+         
+         
+       Case 4
+         
+         Select Case inner_or_partial
+         
+            Case "inner"
+            
+               G_optimal_name = "OT2"
+            
+            Case "partial"
+            
+              G_optimal_name = "OT1"
+              
+         End Select
+         
+         
+    End Select
+    
+    
+    
+    
+    
+    
+   fall_back = False
+   
+   finding_min_ridge_x = False
+   finding_min_ridge_y = False
+   span_over_K_count = 0
+   finding_span_over_min_ridge_XY = True
+   
+'=================================================================================================================================
+
+
+
+return_point_span_over:
+return_point_prevent_fallback:
+
+
+
+
+ '=================================================================================================================================
+
+                
+                
+'             real 좌표계==============================================================================
+                      
+          
+            
+            
+                       Dim i, j As Integer
+           
+                        ReDim eq_ArrX(1 To K_SIZE_X) As Variant
+                        ReDim eq_ArrY(1 To K_SIZE_Y) As Variant
+                        ReDim k_ArrX(K_SIZE_X, K_SIZE_X) As Variant
+                        ReDim k_ArrY(K_SIZE_Y, K_SIZE_Y) As Variant
+                        
+                        ReDim d_ArrX(K_SIZE_X) As Variant
+                        ReDim d_ArrY(K_SIZE_Y) As Variant
+                        ReDim X_ArrX(valid_count, K_SIZE_X) As Variant
+                        ReDim X_ArrY(valid_count, K_SIZE_Y) As Variant
+                        ReDim Xt_ArrX(K_SIZE_X, valid_count) As Variant
+                        ReDim Xt_ArrY(K_SIZE_Y, valid_count) As Variant
+                        
+'                      =========================================================================================
+'                        k_Arr = X'X
+'                        d_Arr = X'y
+        
+                  For count = 1 To valid_count
+          
+                         Select Case order_selection
+                                
+                       Case 1
+                            Call first_order_code7(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                        
+                        Case 2
+                            Call first_order_code7(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                        
+                        Case 3
+                            Call second_order_x47_y63(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                        
+                        Case 4
+                            Call third_order_stage_term_only(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                        
+                        Case 5
+                            Call SDM_S308(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                        
+                        Case 6
+                            Call third_order_x959_y511(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                                 
+                        Case 7
+                            Call third_order_x1023_y511(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                            
+                        Case 8
+                            Call third_order_code1023(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                         
+                        Case 9
+                            Call OVO3_22para(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                         
+                        Case 10
+                            Call OVO3_EUV(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                         
+                        Case 11
+                            Call OVO3_EUV_35p(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                            
+                        Case 12
+                            Call OVO3_DUV(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                            
+                       Case 13
+                            Call OVO4_39P(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                            
+                       Case 14
+                            Call OVO4_DUV(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                            
+                       Case 15
+                            Call OVO5_170p(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                            
+ 
+                     Case 16
+                            Call third_order_code407(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                            
+                     Case 17
+                            Call third_order_x275_y133(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                            
+                     Case 18
+                            Call third_order_x133_y275(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                            
+                     Case 99
+                            Call Seventeen_order_polysine_full(count, eq_ArrX, eq_ArrY, Loc_ArrX_X_axis, Loc_ArrY_X_axis, Loc_ArrX_Y_axis, Loc_ArrY_Y_axis)
+                         End Select
+                          
+              
+'                X =====================================================================================
+                         For i = 1 To K_SIZE_X
+                    
+                             For j = 1 To K_SIZE_X
+                        
+                                k_ArrX(i, j) = k_ArrX(i, j) + eq_ArrX(i) * eq_ArrX(j)
+                               
+                                
+                              Next j
+                              j = j - 1
+                              
+                              
+                              d_ArrX(i) = d_ArrX(i) + eq_ArrX(i) * raw_ArrX(count)
+                       
+                         Next i
+                         
+                         For m = 1 To K_SIZE_X
+                             X_ArrX(count, m) = eq_ArrX(m)   ' = X
+                             Xt_ArrX(m, count) = eq_ArrX(m)   ' = X'
+                         Next m
+                         
+                         
+                         
+'                Y=======================================================================================
+                         For i = 1 To K_SIZE_Y
+                    
+                               For j = 1 To K_SIZE_Y
+                        
+                                 k_ArrY(i, j) = k_ArrY(i, j) + eq_ArrY(i) * eq_ArrY(j)
+            
+                              Next j
+                              
+        
+                             d_ArrY(i) = d_ArrY(i) + eq_ArrY(i) * raw_ArrY(count)
+                       
+                           Next i
+                           
+                           For m = 1 To K_SIZE_Y
+                            X_ArrY(count, m) = eq_ArrY(m)   ' = X
+                            Xt_ArrY(m, count) = eq_ArrY(m)   ' = X'
+                           Next m
+                           
+                           
+                           
+                  Next count
+                  
+                  
+'  Ridge regression 전에 rank 구해 놓기 ===========================================================================================================================
+                  
+
+   If fall_back = False And count_span_retrun = 0 And count_prevent_fallback_retrun = 0 Then
+   
+                      
+       Call SVD_rank_CPE(k_ArrX, k_ArrY, d_ArrX, d_ArrY, K_SIZE_X, K_SIZE_Y, SVD_rank_reticle_x, SVD_rank_reticle_y, SV_ratio_X_max, SV_ratio_Y_max)
+       
+                  
+  End If
+  
