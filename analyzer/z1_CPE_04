@@ -1,0 +1,923 @@
+              
+                  
+' Ridge regression을  g-optimality  및 regression 계산에 반영==================================================================================================================================================================
+
+        ' ridge regression matrix==================================================================================================================================
+        
+        
+        
+
+    
+           If Ridge_regression = True Then
+    
+
+                For i = 1 To K_SIZE_X
+                
+                  k = display_order_x(i)
+                  k_ArrX(i, i) = k_ArrX(i, i) + Ridge_parameter_XY(k)
+                
+                Next i
+                
+                For i = 1 To K_SIZE_Y
+                   k = display_order_y(i)
+                   k_ArrY(i, i) = k_ArrY(i, i) + Ridge_parameter_XY(k)
+    
+                Next i
+                
+                
+           End If
+           
+'   ===================================================================================================================================================================================================================
+           
+                     
+'        G Optimlaity============================================================================================================================================================
+'
+            
+             
+            
+
+        Select Case valid_count
+          
+           
+           Case Is >= 3
+           
+             On Error Resume Next
+             
+                On Error GoTo minverse_fail ' 내장 함수 사용불가시 외장함수 사용
+                inverse_k_Arr_X = Application.WorksheetFunction.MInverse(k_ArrX)  'XTX의 Inverse값 구하기위해 내장 함수 사용
+              
+                inverse_k_Arr_Y = Application.WorksheetFunction.MInverse(k_ArrY)  'XTX의 Inverse값 구하기위해 내장 함수 사용
+                
+                
+ 
+             
+             On Error GoTo 0
+             
+             
+           Case Else
+           
+             Call Matrix_Inverse(k_ArrX, k_ArrY, K_SIZE_X, K_SIZE_Y, inverse_k_Arr_X, inverse_k_Arr_Y)  'XTX의 Inverse값 구하기위해 사용
+
+
+
+          End Select
+
+             
+
+ '        =========================================================================================================================================================================
+        
+        Select Case G_optimal_type
+        
+         Case 1 ' H*HT
+ 
+
+
+                Call make_hat_matrix(hat_matrix_X, hat_matrix_Y, virtual_X_ArrX, virtual_X_ArrY, Xt_ArrX, Xt_ArrY, inverse_k_Arr_X, inverse_k_Arr_Y)
+                
+                 ReDim transpose_hat_matrix_X(valid_count, virtual_points) As Variant
+                 ReDim transpose_hat_matrix_Y(valid_count, virtual_points) As Variant
+                 ReDim type1_hat_matrix_X(virtual_points, virtual_points) As Variant
+                 ReDim type1_hat_matrix_Y(virtual_points, virtual_points) As Variant
+                 
+                 For row = 1 To virtual_points
+    
+                   For col = 1 To valid_count
+                   
+                     transpose_hat_matrix_X(col, row) = hat_matrix_X(row, col)
+                     transpose_hat_matrix_Y(col, row) = hat_matrix_Y(row, col)
+                   
+                   Next col
+    
+                 Next row
+                
+                
+                
+                Call product_matrix(hat_matrix_X, transpose_hat_matrix_X, type1_hat_matrix_X)
+                Call product_matrix(hat_matrix_Y, transpose_hat_matrix_Y, type1_hat_matrix_Y)
+                
+    
+                ReDim X_hat_ii(virtual_points) As Variant
+                ReDim Y_hat_ii(virtual_points) As Variant
+    
+    
+    
+    
+                max_X_hat_ii = type1_hat_matrix_X(1, 1)
+                max_Y_hat_ii = type1_hat_matrix_Y(1, 1)
+                X_hat_ii(1) = type1_hat_matrix_X(1, 1)
+                Y_hat_ii(1) = type1_hat_matrix_Y(1, 1)
+    
+    
+                For count = 2 To virtual_points
+    
+                    X_hat_ii(count) = type1_hat_matrix_X(count, count)
+                    Y_hat_ii(count) = type1_hat_matrix_Y(count, count)
+    
+                    If X_hat_ii(count) > max_X_hat_ii Then max_X_hat_ii = X_hat_ii(count)
+                    If Y_hat_ii(count) > max_Y_hat_ii Then max_Y_hat_ii = Y_hat_ii(count)
+    
+                Next count
+                
+            g = g
+
+         Case 2 ' X_eval * (XT_meas*X_meas)-1 * XT_meas
+ 
+
+
+                Call make_hat_matrix(hat_matrix_X, hat_matrix_Y, virtual_X_ArrX, virtual_X_ArrY, Xt_ArrX, Xt_ArrY, inverse_k_Arr_X, inverse_k_Arr_Y)
+    
+    
+                hat_points = virtual_points * valid_count
+    
+                ReDim X_hat_ii(hat_points) As Variant
+                ReDim Y_hat_ii(hat_points) As Variant
+    
+    
+    
+    
+                max_X_hat_ii = hat_matrix_X(1, 1)
+                max_Y_hat_ii = hat_matrix_Y(1, 1)
+    
+    
+                count = 1
+    
+                For row = 1 To virtual_points
+    
+                   For col = 1 To valid_count
+    
+                    X_hat_ii(count) = hat_matrix_X(row, col)
+                    Y_hat_ii(count) = hat_matrix_Y(row, col)
+    
+                    If X_hat_ii(count) > max_X_hat_ii Then max_X_hat_ii = X_hat_ii(count)
+                    If Y_hat_ii(count) > max_Y_hat_ii Then max_Y_hat_ii = Y_hat_ii(count)
+    
+                    count = count + 1
+    
+                  Next col
+    
+                Next row
+                
+             Case 3 ' X_eval * (XT_meas*X_meas)-1 * XT_eval
+        
+        
+    
+                Call make_hat_matrix(hat_matrix_X, hat_matrix_Y, virtual_X_ArrX, virtual_X_ArrY, virtual_Xt_ArrX, virtual_Xt_ArrY, inverse_k_Arr_X, inverse_k_Arr_Y)
+    
+    
+    
+    
+                ReDim X_hat_ii(virtual_points) As Variant
+                ReDim Y_hat_ii(virtual_points) As Variant
+    
+    
+    
+    
+                max_X_hat_ii = hat_matrix_X(1, 1)
+                max_Y_hat_ii = hat_matrix_Y(1, 1)
+                X_hat_ii(1) = hat_matrix_X(1, 1)
+                Y_hat_ii(1) = hat_matrix_Y(1, 1)
+    
+    
+                For count = 2 To virtual_points
+    
+                    X_hat_ii(count) = hat_matrix_X(count, count)
+                    Y_hat_ii(count) = hat_matrix_Y(count, count)
+    
+                    If X_hat_ii(count) > max_X_hat_ii Then max_X_hat_ii = X_hat_ii(count)
+                    If Y_hat_ii(count) > max_Y_hat_ii Then max_Y_hat_ii = Y_hat_ii(count)
+    
+                Next count
+           
+              
+             Case 4 'Hybrid Type2 + Type1
+             
+                 Select Case inner_or_partial
+                 
+                  Case "inner"  'Type2
+                  
+                            Call make_hat_matrix(hat_matrix_X, hat_matrix_Y, virtual_X_ArrX, virtual_X_ArrY, Xt_ArrX, Xt_ArrY, inverse_k_Arr_X, inverse_k_Arr_Y)
+                            
+                            
+                            hat_points = virtual_points * valid_count
+                            
+                            ReDim X_hat_ii(hat_points) As Variant
+                            ReDim Y_hat_ii(hat_points) As Variant
+                            
+                            
+                            
+                            
+                            max_X_hat_ii = hat_matrix_X(1, 1)
+                            max_Y_hat_ii = hat_matrix_Y(1, 1)
+                            
+                            
+                            count = 1
+                            
+                            For row = 1 To virtual_points
+                            
+                            For col = 1 To valid_count
+                            
+                                X_hat_ii(count) = hat_matrix_X(row, col)
+                                Y_hat_ii(count) = hat_matrix_Y(row, col)
+                                
+                                If X_hat_ii(count) > max_X_hat_ii Then max_X_hat_ii = X_hat_ii(count)
+                                If Y_hat_ii(count) > max_Y_hat_ii Then max_Y_hat_ii = Y_hat_ii(count)
+                            
+                            count = count + 1
+                            
+                            Next col
+                            
+                            Next row
+                   
+                  Case "partial" 'Type1
+                  
+                             Call make_hat_matrix(hat_matrix_X, hat_matrix_Y, virtual_X_ArrX, virtual_X_ArrY, Xt_ArrX, Xt_ArrY, inverse_k_Arr_X, inverse_k_Arr_Y)
+                
+                             ReDim transpose_hat_matrix_X(valid_count, virtual_points) As Variant
+                             ReDim transpose_hat_matrix_Y(valid_count, virtual_points) As Variant
+                             ReDim type1_hat_matrix_X(virtual_points, virtual_points) As Variant
+                             ReDim type1_hat_matrix_Y(virtual_points, virtual_points) As Variant
+                             
+                             For row = 1 To virtual_points
+                
+                               For col = 1 To valid_count
+                               
+                                 transpose_hat_matrix_X(col, row) = hat_matrix_X(row, col)
+                                 transpose_hat_matrix_Y(col, row) = hat_matrix_Y(row, col)
+                               
+                               Next col
+                
+                             Next row
+                            
+                            
+                            
+                            Call product_matrix(hat_matrix_X, transpose_hat_matrix_X, type1_hat_matrix_X)
+                            Call product_matrix(hat_matrix_Y, transpose_hat_matrix_Y, type1_hat_matrix_Y)
+                            
+                
+                            ReDim X_hat_ii(virtual_points) As Variant
+                            ReDim Y_hat_ii(virtual_points) As Variant
+                
+                
+                
+                
+                            max_X_hat_ii = type1_hat_matrix_X(1, 1)
+                            max_Y_hat_ii = type1_hat_matrix_Y(1, 1)
+                            X_hat_ii(1) = type1_hat_matrix_X(1, 1)
+                            Y_hat_ii(1) = type1_hat_matrix_Y(1, 1)
+                
+                
+                            For count = 2 To virtual_points
+                
+                                X_hat_ii(count) = type1_hat_matrix_X(count, count)
+                                Y_hat_ii(count) = type1_hat_matrix_Y(count, count)
+                
+                                If X_hat_ii(count) > max_X_hat_ii Then max_X_hat_ii = X_hat_ii(count)
+                                If Y_hat_ii(count) > max_Y_hat_ii Then max_Y_hat_ii = Y_hat_ii(count)
+                
+                            Next count
+            
+                 
+                 End Select
+                 
+                 
+            End Select
+            
+            
+        
+        ' ==================================================================================================================================================
+        
+          Select Case max_X_hat_ii
+
+             Case Is < 0
+
+              max_X_hat_ii = "999"  '음수
+
+             Case Is >= 100
+
+'              max_X_hat_ii = "100"  ' 값이 큰수 일때
+              max_X_hat_ii = Sqr(max_X_hat_ii)
+             Case Else
+
+              max_X_hat_ii = Sqr(max_X_hat_ii)  '''''Sqrt 이정진님 로직  : Gopt_x=diag(sqrt(M_x_cpe_vfull*inv(transpose(M_x_cpe)*M_x_cpe)*transpose(M_x_cpe_vfull)));
+'              max_X_hat_ii = max_X_hat_ii  ''''' 일반적인 G-optimality logic : ' A popular criterion is G-optimality, which seeks to minimize the maximum entry in the diagonal of the hat matrix X *(X'X)-1* X'
+
+            End Select
+
+            Select Case max_Y_hat_ii
+
+             Case Is < 0
+                                                                                                                                                                                                                                            
+              max_Y_hat_ii = "999"  '음수
+
+
+             Case Is >= 100
+
+'              max_Y_hat_ii = "100"   ' 값이 큰수 일때
+              max_Y_hat_ii = Sqr(max_Y_hat_ii)
+
+             Case Else
+
+              max_Y_hat_ii = Sqr(max_Y_hat_ii)   '''''Sqrt 이정진님 로직  : Gopt_x=diag(sqrt(M_x_cpe_vfull*inv(transpose(M_x_cpe)*M_x_cpe)*transpose(M_x_cpe_vfull)));
+'              max_Y_hat_ii = max_Y_hat_ii        '''''일반적인 G-optimality logic :' A popular criterion is G-optimality, which seeks to minimize the maximum entry in the diagonal of the hat matrix X *(X'X)-1* X'
+          End Select
+
+        
+
+'      =============================================================================================================================================================================
+'      ==============================================================================================================================================================================
+
+   '      fallback=================================================================================================================================================================
+               
+               
+               
+               
+               
+               
+               
+               
+               
+                If initial_ridge_X = 0 Then
+                
+                    Gopt_criteria_X = initial_Gopt_X - G_opt_tolerlance * 10
+                
+
+               Else
+
+                   Gopt_criteria_X = (G_opt_spec - G_opt_tolerlance)
+                  
+               End If
+
+               
+               
+               '======================================
+
+                  
+                  
+               If initial_ridge_Y = 0 Then
+                
+                    Gopt_criteria_Y = initial_Gopt_Y - G_opt_tolerlance * 10
+                
+
+               Else
+
+                   Gopt_criteria_Y = (G_opt_spec - G_opt_tolerlance)
+                  
+               End If
+                  
+                  
+'
+'===============================================
+               
+                Dim ratio_of_valid_count As Single
+               
+                ratio_of_valid_count = valid_count / how_many_tests
+               
+               
+'                case_select = "reticle"
+               
+            
+                
+                If regression_order = order_selection Then ' fallback이 안되었을때(설정치와 실제 order가 동일)만 초기 g-optimal 값을 update
+                    
+                      origin_max_X_hat_ii = Round(max_X_hat_ii, 3)
+                      origin_max_Y_hat_ii = Round(max_Y_hat_ii, 3)
+                    
+                End If
+                        
+                If order_selection = 1 Then GoTo fallback_end:    ' 0th order일경우
+                
+                
+                If Ridge_regression = False And (fallback_option = 4 Or fallback_option = 5) Then ' ridge regression을 사용 안하면 g-optimal (fallback)으로 전환
+                   fallback_option = 3
+                End If
+                
+                
+                max_hat_ii = max_X_hat_ii
+                If max_Y_hat_ii > max_hat_ii Then
+                 max_hat_ii = max_Y_hat_ii
+                End If
+                
+                  
+                Select Case fallback_option
+                
+                    Case 1 'fallback off
+                      
+                             ' fall back off
+                       
+                    Case 2 'Rank  fall back
+
+                         If (SVD_rank_reticle_x < K_SIZE_X) Or (SVD_rank_reticle_y < K_SIZE_Y) Then
+                               fall_back = True
+                               GoTo return_point_fallback:
+    
+                         End If
+                     
+                    
+                    Case 3 ' g-optimal (fallback)
+                       
+                       If max_hat_ii >= G_opt_spec Or max_hat_ii = 0 Or valid_count < 4 Then
+                         fall_back = True
+                         
+                         If is_span_over = True Then 'span over되어 ridge 재 계산하다 다시 fallback으로 차수가 떨어질 경우 기존 계산값 삭제
+                            ThisWorkbook.Sheets("CPE").Cells(shots + 6, 23).Select
+                            ActiveCell.Range("A1:DK1").Select
+                            Selection.ClearContents
+                         End If
+                         
+                         GoTo return_point_fallback:
+                        
+                       End If
+                       
+                       
+                       
+                       
+                    Case 4 ' DART (Dimension Adjusted RT)
+                    
+
+                        If (SVD_rank_reticle_x < K_SIZE_X) Or (SVD_rank_reticle_y < K_SIZE_Y) Then
+
+                            fall_back = True
+                            GoTo return_point_fallback:
+
+                        End If
+                    
+
+                      If count_prevent_fallback_retrun <= max_prevent_fallback_retrun And is_span_over = False Then
+                      
+'                         X ==============================================================================================
+
+                          If slow_return_X = True Then
+                               
+                               Select Case max_X_hat_ii
+
+
+                                   Case Is >= G_opt_spec
+
+                                     start_Ridge_X = next_Ridge_X
+                                     Call ridge_up_Gopt_slow(1, fast_return_X, slow_return_X, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_X, end_Ridge_X, next_Ridge_X, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+
+
+                                   Case Is < Gopt_criteria_X
+                                   
+                                     end_Ridge_X = next_Ridge_X
+                                     Call ridge_up_Gopt_slow(1, fast_return_X, slow_return_X, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_X, end_Ridge_X, next_Ridge_X, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+
+                                  Case Else
+                                  
+                                     ridge_a = Int(next_Ridge_X * 1000)
+                                     ridge_b = next_Ridge_X * 1000
+                                     If (ridge_a - ridge_b) = 0 And (next_Ridge_X <> initial_ridge_X) Then  ' ridge 값이 소수점 3자리 까지 구해질때 까지 반복 추가
+                                         end_Ridge_X = next_Ridge_X
+                                         Call ridge_up_Gopt_slow(1, fast_return_X, slow_return_X, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_X, end_Ridge_X, next_Ridge_X, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                     Else
+                                            slow_return_X = False
+'                                             ridge up 완료됨
+                                     End If
+                                   
+                                 End Select
+                              
+                               
+                            End If
+                             
+
+                            If fast_return_X = True Then
+                           
+                                If max_X_hat_ii >= G_opt_spec Then
+
+                                  Call ridge_up_Gopt_fast(1, fast_return_X, slow_return_X, max_K_SIZE, virtual_points, Vgrid_XY, ramda_ridge_X, ramda_ridge_edge_X, add_ridge, _
+                                                          max_X_hat_ii, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Gopt_X, end_Gopt_X, start_Ridge_X, end_Ridge_X, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                                        
+                                  Else
+                  
+                                 
+                                   Call ridge_up_Gopt_slow(1, fast_return_X, slow_return_X, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_X, end_Ridge_X, next_Ridge_X, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                             
+                                End If
+
+                            End If
+                            
+                            
+                            
+                            If count_prevent_fallback_retrun = 0 Then
+
+                                If max_X_hat_ii >= G_opt_spec Then
+                                
+                                
+                                    prevent_fall_back = True
+                                
+                                    Call ridge_up_Gopt_fast(1, fast_return_X, slow_return_X, max_K_SIZE, virtual_points, Vgrid_XY, ramda_ridge_X, ramda_ridge_edge_X, add_ridge, _
+                                                            max_X_hat_ii, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Gopt_X, end_Gopt_X, start_Ridge_X, end_Ridge_X, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                
+                                End If
+                                
+                           End If
+                            
+                            
+                            
+                            
+
+'                         Y ==============================================================================================
+
+                           
+                           
+                           If slow_return_Y = True Then
+                               
+                               Select Case max_Y_hat_ii
+
+
+                                   Case Is >= G_opt_spec
+
+                                     start_Ridge_Y = next_Ridge_Y
+                                     Call ridge_up_Gopt_slow(2, fast_return_Y, slow_return_Y, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_Y, end_Ridge_Y, next_Ridge_Y, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+
+
+                                   Case Is < Gopt_criteria_Y
+                                   
+                                     end_Ridge_Y = next_Ridge_Y
+                                     Call ridge_up_Gopt_slow(2, fast_return_Y, slow_return_Y, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_Y, end_Ridge_Y, next_Ridge_Y, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                  
+                                  Case Else
+                                  
+                                     ridge_a = Int(next_Ridge_Y * 1000)
+                                     ridge_b = next_Ridge_Y * 1000
+                                     If (ridge_a - ridge_b) = 0 And (next_Ridge_Y <> initial_ridge_Y) Then ' ridge 값이 소수점 3자리 까지 구해질때 까지 반복 추가
+                                         end_Ridge_Y = next_Ridge_Y
+                                         Call ridge_up_Gopt_slow(2, fast_return_Y, slow_return_Y, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_Y, end_Ridge_Y, next_Ridge_Y, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                     Else
+                                           slow_return_Y = False
+'                                           ridge up 완료됨
+                                     End If
+                                   
+                                 End Select
+                                 
+                            End If
+                            
+
+                            If fast_return_Y = True Then
+                           
+                                If max_Y_hat_ii >= G_opt_spec Then
+
+                                  Call ridge_up_Gopt_fast(2, fast_return_Y, slow_return_Y, max_K_SIZE, virtual_points, Vgrid_XY, ramda_ridge_Y, ramda_ridge_edge_Y, add_ridge, _
+                                                        max_Y_hat_ii, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Gopt_Y, end_Gopt_Y, start_Ridge_Y, end_Ridge_Y, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                                        
+                                  Else
+                                  
+                                    
+                                   Call ridge_up_Gopt_slow(2, fast_return_Y, slow_return_Y, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_Y, end_Ridge_Y, next_Ridge_Y, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                 
+                                 
+                                End If
+
+                            End If
+
+                        
+                            If count_prevent_fallback_retrun = 0 Then
+
+                                If max_Y_hat_ii >= G_opt_spec Then
+                                
+                                
+                                    prevent_fall_back = True
+                                
+                                    Call ridge_up_Gopt_fast(2, fast_return_Y, slow_return_Y, max_K_SIZE, virtual_points, Vgrid_XY, ramda_ridge_Y, ramda_ridge_edge_Y, add_ridge, _
+                                                        max_Y_hat_ii, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Gopt_Y, end_Gopt_Y, start_Ridge_Y, end_Ridge_Y, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                
+                                End If
+                                
+                            End If
+                           
+                   
+
+                           '==========================================================================================================
+                           
+                           
+                           
+                                  If fast_return_X = True Or slow_return_X = True Or fast_return_Y = True Or slow_return_Y = True Then
+                                  
+                                     count_prevent_fallback_retrun = count_prevent_fallback_retrun + 1
+                                     GoTo return_point_prevent_fallback:
+                                     
+                                  End If
+                                  
+                                  
+                                 If (max_ridge <> Empty) And (max_ridge <> 0) And ((next_Ridge_X >= max_ridge) Or (next_Ridge_Y >= max_ridge)) Then  ' 최종 계산된 ridge 값이 max ridge보다 클경우 fall back 처리 시킴
+
+                                       fall_back = True
+                                       fast_return_X = Empty
+                                       slow_return_X = Empty
+                                       fast_return_Y = Empty
+                                       slow_return_Y = Empty
+
+                                       GoTo return_point_fallback:
+
+                                 End If
+                                    
+                                            
+                                    
+                           End If
+
+                                  
+                                  
+                        g = g
+      
+                       
+                       
+                    Case 5 ' RT(Ridge tapering)
+                        
+                        If (SVD_rank_reticle_x = 1) And (SVD_rank_reticle_y = 1) Then
+
+                            fall_back = True
+                            GoTo return_point_fallback:
+
+                        End If
+                    
+                    
+                        If count_prevent_fallback_retrun <= max_prevent_fallback_retrun And is_span_over = False Then
+                      
+'                         X ==============================================================================================
+
+                          If slow_return_X = True Then
+                               
+                               Select Case max_X_hat_ii
+
+
+                                   Case Is >= G_opt_spec
+
+                                     start_Ridge_X = next_Ridge_X
+                                     Call ridge_up_Gopt_slow(1, fast_return_X, slow_return_X, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_X, end_Ridge_X, next_Ridge_X, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+
+                                   Case Is < Gopt_criteria_X
+
+                                     end_Ridge_X = next_Ridge_X
+                                     Call ridge_up_Gopt_slow(1, fast_return_X, slow_return_X, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_X, end_Ridge_X, next_Ridge_X, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+
+                                  Case Else
+                                  
+                                     ridge_a = Int(next_Ridge_X * 1000)
+                                     ridge_b = next_Ridge_X * 1000
+                                     If (ridge_a - ridge_b) = 0 And (next_Ridge_X <> initial_ridge_X) Then   ' ridge 값이 소수점 3자리 까지 구해질때 까지 반복 추가
+                                         end_Ridge_X = next_Ridge_X
+                                         Call ridge_up_Gopt_slow(1, fast_return_X, slow_return_X, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_X, end_Ridge_X, next_Ridge_X, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                     Else
+                                            slow_return_X = False
+'                                             ridge up 완료됨
+                                     End If
+                                     
+                                   
+                                 End Select
+                              
+                               
+                            End If
+                             
+
+                            If fast_return_X = True Then
+                           
+                                If max_X_hat_ii >= G_opt_spec Then
+
+                                  Call ridge_up_Gopt_fast(1, fast_return_X, slow_return_X, max_K_SIZE, virtual_points, Vgrid_XY, ramda_ridge_X, ramda_ridge_edge_X, add_ridge, _
+                                                          max_X_hat_ii, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Gopt_X, end_Gopt_X, start_Ridge_X, end_Ridge_X, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                                        
+                                  Else
+                                  
+                                     If count_prevent_fallback_retrun <= 0 Then
+                                     
+                                         Call ridge_up_Gopt_fast(1, fast_return_X, slow_return_X, max_K_SIZE, virtual_points, Vgrid_XY, ramda_ridge_X, ramda_ridge_edge_X, add_ridge, _
+                                                             max_X_hat_ii, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Gopt_X, end_Gopt_X, start_Ridge_X, end_Ridge_X, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                            
+                                     Else
+                                           Call ridge_up_Gopt_slow(1, fast_return_X, slow_return_X, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_X, end_Ridge_X, next_Ridge_X, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                    
+                                    End If
+                                 
+                                End If
+
+                            End If
+                            
+                            
+                            
+                            If count_prevent_fallback_retrun = 0 Then
+
+                                Select Case max_X_hat_ii
+                                  Case Is >= G_opt_spec
+                                        prevent_fall_back = True
+                                       Call ridge_up_Gopt_fast(1, fast_return_X, slow_return_X, max_K_SIZE, virtual_points, Vgrid_XY, ramda_ridge_X, ramda_ridge_edge_X, add_ridge, _
+                                                                  max_X_hat_ii, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Gopt_X, end_Gopt_X, start_Ridge_X, end_Ridge_X, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+'
+                                  Case Is < Gopt_criteria_X   '=========================================
+
+                                     start_Ridge_X = 0
+                                     end_Ridge_X = initial_ridge_X
+
+                                     Call ridge_up_Gopt_slow(1, fast_return_X, slow_return_X, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_X, end_Ridge_X, next_Ridge_X, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+
+g = g
+                                End Select
+                                
+                            
+                                
+                                
+                           End If
+                            
+                            
+                            
+                            
+
+'                         Y ==============================================================================================
+
+                           
+                           
+                           If slow_return_Y = True Then
+                               
+                               Select Case max_Y_hat_ii
+
+
+                                   Case Is >= G_opt_spec
+
+                                     start_Ridge_Y = next_Ridge_Y
+                                     Call ridge_up_Gopt_slow(2, fast_return_Y, slow_return_Y, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_Y, end_Ridge_Y, next_Ridge_Y, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                   
+
+                                   Case Is < Gopt_criteria_Y
+
+                                     end_Ridge_Y = next_Ridge_Y
+                                     Call ridge_up_Gopt_slow(2, fast_return_Y, slow_return_Y, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_Y, end_Ridge_Y, next_Ridge_Y, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                  
+                                  Case Else
+                                  
+                                     ridge_a = Int(next_Ridge_Y * 1000)
+                                     ridge_b = next_Ridge_Y * 1000
+                                     If (ridge_a - ridge_b) = 0 And (next_Ridge_Y <> initial_ridge_Y) Then  ' ridge 값이 소수점 3자리 까지 구해질때 까지 반복 추가
+                                         end_Ridge_Y = next_Ridge_Y
+                                         Call ridge_up_Gopt_slow(2, fast_return_Y, slow_return_Y, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_Y, end_Ridge_Y, next_Ridge_Y, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                     Else
+                                           slow_return_Y = False
+'                                           ridge up 완료됨
+                                     End If
+                                  
+                                     
+                                   
+                                 End Select
+                                 
+                            End If
+                            
+
+                            If fast_return_Y = True Then
+                           
+                                If max_Y_hat_ii >= G_opt_spec Then
+
+                                  Call ridge_up_Gopt_fast(2, fast_return_Y, slow_return_Y, max_K_SIZE, virtual_points, Vgrid_XY, ramda_ridge_Y, ramda_ridge_edge_Y, add_ridge, _
+                                                        max_Y_hat_ii, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Gopt_Y, end_Gopt_Y, start_Ridge_Y, end_Ridge_Y, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                                        
+                                  Else
+                                  
+                                    If count_prevent_fallback_retrun <= 0 Then
+                                    
+                                        Call ridge_up_Gopt_fast(2, fast_return_Y, slow_return_Y, max_K_SIZE, virtual_points, Vgrid_XY, ramda_ridge_Y, ramda_ridge_edge_Y, add_ridge, _
+                                                        max_Y_hat_ii, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Gopt_Y, end_Gopt_Y, start_Ridge_Y, end_Ridge_Y, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                              
+                                    Else
+                                    
+                                        Call ridge_up_Gopt_slow(2, fast_return_Y, slow_return_Y, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_Y, end_Ridge_Y, next_Ridge_Y, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                 
+                                    End If
+                                    
+                                End If
+
+                            End If
+
+                        
+                            If count_prevent_fallback_retrun = 0 Then
+                                
+                                Select Case max_Y_hat_ii
+                                
+                                  Case Is >= G_opt_spec
+                                        prevent_fall_back = True
+                                       Call ridge_up_Gopt_fast(2, fast_return_Y, slow_return_Y, max_K_SIZE, virtual_points, Vgrid_XY, ramda_ridge_Y, ramda_ridge_edge_Y, add_ridge, _
+                                                        max_Y_hat_ii, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Gopt_Y, end_Gopt_Y, start_Ridge_Y, end_Ridge_Y, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+                                
+                                  Case Is < Gopt_criteria_Y
+
+                                     start_Ridge_Y = 0
+                                     end_Ridge_Y = initial_ridge_Y
+
+                                     Call ridge_up_Gopt_slow(2, fast_return_Y, slow_return_Y, max_K_SIZE, virtual_points, Vgrid_XY, add_ridge, Ridge_parameter_XY, count_prevent_fallback_retrun, start_Ridge_Y, end_Ridge_Y, next_Ridge_Y, order_selection, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+
+
+                                End Select
+                                
+                            End If
+                           
+                   
+
+                           '==========================================================================================================
+                           
+                               If count_prevent_fallback_retrun >= 10 And (next_Ridge_X < 10 ^ -5 Or next_Ridge_Y < 10 ^ -5) Then
+                               
+                                   
+                                  
+                                  GoTo fallback_end:
+                               
+                               
+                               End If
+                               
+                           
+                                  
+                                  
+                                  
+                                  If fast_return_X = True Or slow_return_X = True Or fast_return_Y = True Or slow_return_Y = True Then
+                                  
+                                     count_prevent_fallback_retrun = count_prevent_fallback_retrun + 1
+                                     GoTo return_point_prevent_fallback:
+                                     
+                                  End If
+                                  
+              
+                           End If
+                           
+                           
+                           
+                           
+'                       안전장치    =============================================================================
+                           
+                            max_Ridge_parameter_XY = Ridge_parameter_XY(1)
+                            max_Ridge_parameter_X = Ridge_parameter_XY(1)
+                            max_Ridge_parameter_Y = Ridge_parameter_XY(2)
+                            
+                            For i = 1 To max_K_SIZE
+                            
+                            If Ridge_parameter_XY(i) > max_Ridge_parameter_XY Then
+                                max_Ridge_parameter_XY = Ridge_parameter_XY(i)
+                            End If
+                            
+                            Next i
+                        
+                            
+                            For i = 1 To K_SIZE_X
+                            
+                                If Ridge_parameter_XY(display_order_x(i)) > max_Ridge_parameter_X Then
+                                    max_Ridge_parameter_X = Ridge_parameter_XY(display_order_x(i))
+                                End If
+                            
+                            Next i
+            
+                            For i = 1 To K_SIZE_Y
+                            
+                                If Ridge_parameter_XY(display_order_y(i)) > max_Ridge_parameter_Y Then
+                                    max_Ridge_parameter_Y = Ridge_parameter_XY(display_order_y(i))
+                                End If
+                            
+                            Next i
+
+                           
+                           
+                           If max_Ridge_parameter_X = 0 And (SVD_rank_reticle_x < K_SIZE_X) Then  ' ridge를 사용하지 않고 full rank가 아닐경우
+
+                                For k = 1 To max_K_SIZE Step 2
+
+                                    Select Case order_selection
+                                        Case 1 To 2
+                                            Ridge_parameter_XY(k) = minimum_Ridge * ridge_valve_1st(k)
+                                        Case 3 To 7
+                                           Ridge_parameter_XY(k) = minimum_Ridge * ridge_valve_3rd(k)
+                                        Case Else
+                                            Ridge_parameter_XY(k) = minimum_Ridge * ridge_valve_hyper(k)
+                                    End Select
+
+                                Next k
+
+                                 For i = 1 To K_SIZE_X
+
+                                  k = display_order_x(i)
+                                  k_ArrX(i, i) = k_ArrX(i, i) + Ridge_parameter_XY(k)
+
+                                Next i
+
+
+
+                           End If
+
+                           If max_Ridge_parameter_Y = 0 And (SVD_rank_reticle_y < K_SIZE_Y) Then  ' ridge를 사용하지 않고 full rank가 아닐경우
+
+                                For k = 2 To max_K_SIZE Step 2
+
+                                    Select Case order_selection
+                                        Case 1 To 2
+                                            Ridge_parameter_XY(k) = minimum_Ridge * ridge_valve_1st(k)
+                                        Case 3 To 7
+                                           Ridge_parameter_XY(k) = minimum_Ridge * ridge_valve_3rd(k)
+                                        Case Else
+                                            Ridge_parameter_XY(k) = minimum_Ridge * ridge_valve_hyper(k)
+                                    End Select
+
+                                Next k
+                                For i = 1 To K_SIZE_Y
+                                   k = display_order_y(i)
+                                   k_ArrY(i, i) = k_ArrY(i, i) + Ridge_parameter_XY(k)
+
+                                Next i
+                           End If
+                           
+
+
+                End Select
+                
+                
