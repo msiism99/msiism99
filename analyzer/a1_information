@@ -1,0 +1,424 @@
+Option Base 1
+
+Type raw_information
+
+        count As Long
+        wafer As Variant
+        test As Variant
+
+End Type
+
+Type test_information
+
+        count As Long
+        test_name As Variant
+
+End Type
+
+Public raw_data_structure() As raw_information
+Public test_structure() As test_information
+
+Sub resolving_power_select(resolving_power, how_many_total_vspecs, pi, number_of_sub_decimal)
+
+'=====================================================================================
+  resolving_power = 1  'minimum degree
+  
+  
+  
+  
+  how_many_total_vspecs = 360 / resolving_power
+  pi = 3.14159265358979
+ 
+'======================================================================================
+  Resolving_Power_string = Str(resolving_power)
+  Resolving_Power_string_temp = Split(Resolving_Power_string, ".", -1)
+  max_dim = UBound(Resolving_Power_string_temp)
+
+  Select Case max_dim
+
+  Case 0
+
+  number_of_sub_decimal = 0
+  Case 1
+  number_of_sub_decimal = Len(Resolving_Power_string_temp(1))
+  End Select
+  
+  
+ '========================================================================================
+
+
+End Sub
+Sub raw_data_information(raw_size, how_many_wafers, how_many_tests, wafer_count, wafer_test_count, wafer_slot)
+    
+    '===================================================================================
+    
+    Dim wafers As Variant, wafer1 As Variant, wafer2 As Variant, tests As Long, test1 As Long, test2 As Long, W As Long
+    
+    
+    how_many_wafers = ThisWorkbook.Sheets("Run").Range("D9").value
+    how_many_tests = ThisWorkbook.Sheets("Run").Range("D10").value
+    
+    ReDim wafer_count(how_many_wafers) As Long
+    ReDim wafer_slot(how_many_wafers) As Variant
+    ReDim wafer_test_count(how_many_wafers, how_many_tests) As Long
+    
+    
+    ReDim test_structure(how_many_tests) As test_information
+    
+    
+    
+    
+    
+    
+   
+    '======================================================================= data size 분석
+    
+    
+   On Error GoTo error_message
+    
+    
+    
+    Set Rawsheet = ThisWorkbook.Sheets("Raw data")
+    
+    raw_size = 0
+    
+    Do While IsEmpty(Rawsheet.Cells(6 + raw_size, 2).value) = False
+    
+           raw_size = raw_size + 1
+                 
+    Loop
+    
+      ReDim raw_data_structure(raw_size) As raw_information
+    
+    
+    
+    
+    Set Runsheet = ThisWorkbook.Sheets("Run")
+
+    
+    For test_count = 1 To how_many_tests
+    
+           test_structure(test_count).count = test_count
+           test_structure(test_count).test_name = Runsheet.Cells(15 + test_count, 3).value
+
+    Next test_count
+ 
+           
+           
+  
+    
+    
+    
+    r = 1
+    
+    Do While IsEmpty(Rawsheet.Cells(5 + r, 2).value) = False
+    
+        raw_data_structure(r).count = r
+        raw_data_structure(r).wafer = Rawsheet.Cells(5 + r, 2).value
+        raw_data_structure(r).test = Rawsheet.Cells(5 + r, 3).value
+         
+        r = r + 1
+           
+    Loop
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+           
+    wafers = 1
+    wafer_count(wafers) = 1
+    test1 = raw_data_structure(1).test
+    
+    test_count = 1
+    Do Until test1 = test_structure(test_count).test_name
+    
+        test_count = test_count + 1
+        
+    Loop
+   
+   wafer_test_count(wafers, test_count) = 1
+
+
+    If how_many_wafers = 1 Then wafer_slot(wafers) = Rawsheet.Cells(6, 2).value
+    
+    For t = 2 To raw_size
+
+            wafer1 = raw_data_structure(t - 1).wafer
+            wafer2 = raw_data_structure(t).wafer
+            test1 = raw_data_structure(t - 1).test
+            test2 = raw_data_structure(t).test
+            
+             If wafer1 = wafer2 Then
+                                 wafer_count(wafers) = wafer_count(wafers) + 1
+                                   If test1 = test2 Then
+
+                                     wafer_test_count(wafers, test_count) = wafer_test_count(wafers, test_count) + 1
+                                     
+                                    Else:
+                                        test_count = 1
+                                        Do Until test2 = test_structure(test_count).test_name
+                                        
+                                            test_count = test_count + 1
+                                            
+                                        Loop
+                                                
+                                      wafer_test_count(wafers, test_count) = 1
+            
+            
+                                   End If
+            
+            
+            
+                                Else:
+            
+                                 wafer_slot(wafers) = wafer1
+                                 wafers = wafers + 1
+                                 wafer_slot(wafers) = wafer2
+            
+                                 wafer_count(wafers) = 1
+                                 If test1 = test2 Then
+                                            wafer_test_count(wafers, test_count) = wafer_test_count(wafers, test_count) + 1
+                                 Else:
+                                        test_count = 1
+                                        Do Until test2 = test_structure(test_count).test_name
+                                        
+                                            test_count = test_count + 1
+                                            
+                                        Loop
+                                                
+                                      wafer_test_count(wafers, test_count) = 1
+            
+                                 End If
+            
+            
+            End If
+      
+    Next t
+ 
+    
+    GoTo 100:
+    
+    
+error_message:
+    Dim Msg, Style, Title
+    Msg = "Rawdata information(how many wafers or features) is not correct... Push device selector macro button"
+    Style = vbOKOnly
+    Title = "Overlay analyzer"
+    
+    Response = MsgBox(Msg, Style, Title)
+    
+    ThisWorkbook.Sheets("Run").Select
+    
+    End
+    
+100:
+
+
+
+
+End Sub
+
+
+
+Sub matrix_logging(page, count, LocX, LocY, wafer, test, dx, dy)
+
+  Application.StatusBar = " Writing regression matrix on excel sheet..."
+
+
+   ThisWorkbook.Sheets(page).Cells(count + 37, 1).value = wafer
+    ThisWorkbook.Sheets(page).Cells(count + 37, 2).value = test
+    ThisWorkbook.Sheets(page).Cells(count + 37, 3).value = LocX
+    ThisWorkbook.Sheets(page).Cells(count + 37, 4).value = LocY
+    ThisWorkbook.Sheets(page).Cells(count + 37, 5).value = dx
+    ThisWorkbook.Sheets(page).Cells(count + 37, 6).value = dy
+
+
+
+
+    ThisWorkbook.Sheets(page).Cells(count + 37, 7).value = LocX ^ 2
+    ThisWorkbook.Sheets(page).Cells(count + 37, 8).value = LocX * LocY
+    ThisWorkbook.Sheets(page).Cells(count + 37, 9).value = LocY ^ 2
+
+    ThisWorkbook.Sheets(page).Cells(count + 37, 10).value = LocX ^ 3
+    ThisWorkbook.Sheets(page).Cells(count + 37, 11).value = LocX ^ 2 * LocY
+    ThisWorkbook.Sheets(page).Cells(count + 37, 12).value = LocX * LocY ^ 2
+    ThisWorkbook.Sheets(page).Cells(count + 37, 13).value = LocY ^ 3
+
+    ThisWorkbook.Sheets(page).Cells(count + 37, 14).value = LocX ^ 4
+    ThisWorkbook.Sheets(page).Cells(count + 37, 15).value = LocX ^ 3 * LocY
+    ThisWorkbook.Sheets(page).Cells(count + 37, 16).value = LocX ^ 2 * LocY ^ 2
+    ThisWorkbook.Sheets(page).Cells(count + 37, 17).value = LocX * LocY ^ 3
+    ThisWorkbook.Sheets(page).Cells(count + 37, 18).value = LocY ^ 4
+
+    ThisWorkbook.Sheets(page).Cells(count + 37, 19).value = LocX ^ 5
+    ThisWorkbook.Sheets(page).Cells(count + 37, 20).value = LocX ^ 4 * LocY
+    ThisWorkbook.Sheets(page).Cells(count + 37, 21).value = LocX ^ 3 * LocY ^ 2
+    ThisWorkbook.Sheets(page).Cells(count + 37, 22).value = LocX ^ 2 * LocY ^ 3
+    ThisWorkbook.Sheets(page).Cells(count + 37, 23).value = LocX * LocY ^ 4
+    ThisWorkbook.Sheets(page).Cells(count + 37, 24).value = LocY ^ 5
+
+    ThisWorkbook.Sheets(page).Cells(count + 37, 25).value = LocX ^ 6
+    ThisWorkbook.Sheets(page).Cells(count + 37, 26).value = LocX ^ 5 * LocY
+    ThisWorkbook.Sheets(page).Cells(count + 37, 27).value = LocX ^ 4 * LocY ^ 2
+    ThisWorkbook.Sheets(page).Cells(count + 37, 28).value = LocX ^ 3 * LocY ^ 3
+    ThisWorkbook.Sheets(page).Cells(count + 37, 29).value = LocX ^ 2 * LocY ^ 4
+    ThisWorkbook.Sheets(page).Cells(count + 37, 30).value = LocX * LocY ^ 5
+    ThisWorkbook.Sheets(page).Cells(count + 37, 31).value = LocY ^ 6
+End Sub
+
+Sub matrix_logging2(page, K_SIZE_X, K_SIZE_Y, k_ArrX, k_ArrY, d_ArrX, d_ArrY)
+
+Dim i As Long, j As Long
+
+
+
+  For i = 1 To K_SIZE_X
+
+
+     For j = 1 To K_SIZE_X
+
+       ThisWorkbook.Sheets(page).Cells(4 + i, 3 + j).value = k_ArrX(i, j)
+
+
+     Next j
+     j = j - 1
+
+   ThisWorkbook.Sheets(page).Cells(4 + i, 3).value = d_ArrX(i)
+
+
+ Next i
+
+ '=======================================================
+  i = i - 1
+   For i = 1 To K_SIZE_Y
+
+
+     For j = 1 To K_SIZE_Y
+
+
+       ThisWorkbook.Sheets(page).Cells(4 + i, 41 + j).value = k_ArrY(i, j)
+
+     Next j
+     j = j - 1
+
+
+   ThisWorkbook.Sheets(page).Cells(4 + i, 41).value = d_ArrY(i)
+
+ Next i
+
+  i = i - 1
+
+
+'=======================================================
+  i = i - 1
+   For i = 1 To K_SIZE_X
+
+
+     For j = 1 To K_SIZE_X
+
+
+       ThisWorkbook.Sheets(page).Cells(4 + i, 79 + j).value = k_ArrX(i, j)
+
+     Next j
+     j = j - 1
+
+
+ Next i
+
+  i = i - 1
+
+'========================================================
+  i = i - 1
+   For i = 1 To K_SIZE_Y
+
+
+     For j = 1 To K_SIZE_Y
+
+
+       ThisWorkbook.Sheets(page).Cells(4 + i, 117 + j).value = k_ArrY(i, j)
+
+     Next j
+     j = j - 1
+
+
+ Next i
+
+  i = i - 1
+
+
+  '=========================================================================================
+  '=========================================================================================
+
+
+
+End Sub
+
+
+
+Sub header(page)
+ ThisWorkbook.Sheets(page).Cells(37, 1).value = "WAFER"
+    ThisWorkbook.Sheets(page).Cells(37, 2).value = "Test"
+    ThisWorkbook.Sheets(page).Cells(37, 3).value = "LocX"
+    ThisWorkbook.Sheets(page).Cells(37, 4).value = "LocY"
+    ThisWorkbook.Sheets(page).Cells(37, 5).value = "dX"
+    ThisWorkbook.Sheets(page).Cells(37, 6).value = "dY"
+
+    ThisWorkbook.Sheets(page).Cells(37, 7).value = "LocX^2"
+    ThisWorkbook.Sheets(page).Cells(37, 8).value = "LocX*LocY"
+    ThisWorkbook.Sheets(page).Cells(37, 9).value = "LocY^2"
+
+    ThisWorkbook.Sheets(page).Cells(37, 10).value = "LocX^3"
+    ThisWorkbook.Sheets(page).Cells(37, 11).value = "LocX^2*LocY"
+    ThisWorkbook.Sheets(page).Cells(37, 12).value = "LocX*LocY^2"
+    ThisWorkbook.Sheets(page).Cells(37, 13).value = "LocY^3"
+
+    ThisWorkbook.Sheets(page).Cells(37, 14).value = "LocX^4"
+    ThisWorkbook.Sheets(page).Cells(37, 15).value = "LocX^3*LocY"
+    ThisWorkbook.Sheets(page).Cells(37, 16).value = "LocX^2*LocY^2"
+    ThisWorkbook.Sheets(page).Cells(37, 17).value = "LocX*LocY^3"
+    ThisWorkbook.Sheets(page).Cells(37, 18).value = "LocY^4"
+
+    ThisWorkbook.Sheets(page).Cells(37, 19).value = "LocX^5"
+    ThisWorkbook.Sheets(page).Cells(37, 20).value = "LocX^4*LocY"
+    ThisWorkbook.Sheets(page).Cells(37, 21).value = "LocX^3*LocY^2"
+    ThisWorkbook.Sheets(page).Cells(37, 22).value = "LocX^2*LocY^3"
+    ThisWorkbook.Sheets(page).Cells(37, 23).value = "LocX*LocY^4"
+    ThisWorkbook.Sheets(page).Cells(37, 24).value = "LocY^5"
+
+    ThisWorkbook.Sheets(page).Cells(37, 25).value = "LocX^6"
+    ThisWorkbook.Sheets(page).Cells(37, 26).value = "LocX^5*LocY"
+    ThisWorkbook.Sheets(page).Cells(37, 27).value = "LocX^4*LocY^2"
+    ThisWorkbook.Sheets(page).Cells(37, 28).value = "LocX^3*LocY^3"
+    ThisWorkbook.Sheets(page).Cells(37, 29).value = "LocX^2*LocY^4"
+    ThisWorkbook.Sheets(page).Cells(37, 30).value = "LocX*LocY^5"
+    ThisWorkbook.Sheets(page).Cells(37, 31).value = "LocY^6"
+
+
+    '==========================================================================
+End Sub
+
+
+
+
+
+Sub SVD_rank_handler()
+
+    Dim Msg, Style, Title
+    Msg = "Check outlier : Rank failure "
+    Style = vbOKOnly
+    Title = "Regression fail"
+    Response = MsgBox(Msg, Style, Title)
+    
+    
+    End
+    
+    
+End Sub
+
+
