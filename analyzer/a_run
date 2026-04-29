@@ -1,0 +1,440 @@
+' Overlay analyzer
+' 2000.04.20 SAMSUNG  PHOTO HONGSEOK KIM
+
+'===================================
+' 2001.07.26 REV01
+' 2001.07.30 REV03
+' 2001.08.01 REV04
+' 2001.08.03 REV05
+' 2001.12.24 REV06 300mm RDP
+' 2001.12.30 REV07 NONLINEAR MISALGN (MAC)
+' 2004.04.19 REV08 HIGH ORDER AND ETC....
+' 2008.03.13 평가판 080313  xymode, vector weight,.....
+' 2008.12.11 평가판 081211  xymode, unit conversion.....
+' 2010 07.24  outlier
+' ==================================
+Option Base 1
+
+ Public I_have_vector_spec As Variant
+
+
+Sub run_scanner()
+
+Call side_map_clear
+
+
+Regression_option = ThisWorkbook.Sheets("Option table").Range("D43").value
+
+
+If Regression_option = True Then
+
+   ThisWorkbook.Sheets("Option table").Range("D7").value = False
+   ThisWorkbook.Sheets("Option table").Range("D40").value = False
+   ThisWorkbook.Sheets("Option table").Range("D41").value = 1
+
+    Call merge_analysis
+    Call residual_wafer
+    Call residual_reticle
+
+Else
+    
+'    ThisWorkbook.Sheets("Option table").Range("D7").Value = True
+    Call waferfield_analysis
+    Call residual_wafer
+    Call reticlefield_analysis
+    Call residual_reticle
+
+End If
+
+
+Call forced_removal
+Call fitting_sample
+Call decoration
+Call CPE_clear
+Call TROCS_clear
+Call vspec_control
+
+
+drawing_map = ThisWorkbook.Sheets("Option table").Range("D10").value
+
+
+If drawing_map = 1 Then
+
+    draw_raw = ThisWorkbook.Sheets("Option table").Range("D32").value
+    draw_residual = ThisWorkbook.Sheets("Option table").Range("D33").value
+    draw_MRC = ThisWorkbook.Sheets("Option table").Range("D35").value
+    draw_raw_MRC = ThisWorkbook.Sheets("Option table").Range("D36").value
+    draw_spec = ThisWorkbook.Sheets("Option table").Range("D37").value
+    
+    select_map = ThisWorkbook.Sheets("Option table").Range("D24").value
+
+
+    If draw_residual = True Then
+    
+       Call draw_residual_map
+       
+    End If
+    
+    
+    If draw_raw = True Then
+    
+       Call draw_raw_map
+       
+    End If
+       
+    
+    If draw_MRC = True Then
+    
+       Call draw_MRC_map
+       
+    End If
+    
+    If draw_raw_MRC = True Then
+
+       Call draw_Raw_removed_MRC_map
+
+    End If
+    
+    If draw_spec = True Then
+    
+       Call draw_spec_map("spring")
+       
+    End If
+    
+                  
+End If
+
+
+
+Call rdp_calculation
+
+I_have_vector_spec = False
+
+Application.StatusBar = "END ♬"
+
+End Sub
+
+Sub residual_simulation()
+
+Call residual_wafer
+Call residual_reticle
+Call fitting_sample
+
+Call vspec_control
+
+
+drawing_map = ThisWorkbook.Sheets("Option table").Range("D10").value
+drawing_residual_map = ThisWorkbook.Sheets("Output").Range("A13").value
+
+
+If drawing_map = 1 Then
+
+  Call draw_residual_map
+                      
+End If
+ 
+If drawing_map = 2 And drawing_residual_map = True Then
+       
+ Call draw_residual_map
+ 
+End If
+      
+
+Application.StatusBar = "residual  simulation end"
+
+End Sub
+
+
+Sub fitting_simulation()
+
+    Call vspec_control
+    'Call residual_simulation
+    Call rdp_calculation
+    
+    Application.StatusBar = "fitting  simulation end"
+
+End Sub
+Sub raw_map_standalone()
+
+
+    Call vspec_control
+    Call draw_raw_map
+
+End Sub
+Sub residual_map_standalone()
+
+
+    Call vspec_control
+    Call draw_residual_map
+
+
+End Sub
+
+Sub MRC_map_standalone()
+
+
+    Call vspec_control
+    Call draw_MRC_map
+
+End Sub
+Sub Raw_removed_MRC_map_standalone()
+
+
+    Call vspec_control
+    Call draw_Raw_removed_MRC_map
+
+End Sub
+
+
+Sub sheet_delete()
+    Application.ScreenUpdating = False
+    Application.StatusBar = "초기화 작업중"
+    SHEETName = ActiveSheet.Name
+    Application.DisplayAlerts = False
+
+    Sheets("MAP_Residual").Select
+    Sheets("MAP_Residual").Delete
+    Sheets.Add.Name = "MAP_Residual"
+    Range("A1").Select
+    ActiveWindow.Zoom = 55
+    
+    Sheets("MAP_Raw").Select
+    Sheets("MAP_Raw").Delete
+    Sheets.Add.Name = "MAP_Raw"
+    Range("A1").Select
+    ActiveWindow.Zoom = 55
+    
+    Sheets("MAP_Fitting").Select
+    Sheets("MAP_Fitting").Delete
+    Sheets.Add.Name = "MAP_Fitting"
+    Range("A1").Select
+    ActiveWindow.Zoom = 55
+    
+    
+  ThisWorkbook.Worksheets(SHEETName).Select
+End Sub
+
+
+
+Sub ERASER()
+
+'
+    Sheets("Raw data").Select
+    rows("6:6").Select
+    Range(Selection, Selection.End(xlDown)).Select
+    Selection.Delete Shift:=xlUp
+    
+    Range("B6").Select
+End Sub
+
+Sub CPE_clear()
+    
+   
+ 
+    Sheets("CPE").Select
+
+    rows("7:7").Select
+    Range(Selection, Selection.End(xlDown)).Select
+    Selection.Delete Shift:=xlUp
+    
+    Range("F4:G4").Select
+    Selection.ClearContents
+    Range("M4:N4").Select
+    Selection.ClearContents
+    
+    
+    rows("7:7").Select
+    Range(Selection, Selection.End(xlDown)).Select
+    Selection.Delete Shift:=xlUp
+
+    Range("F4:G4").Select
+    Selection.ClearContents
+    Range("M4:N4").Select
+    Selection.ClearContents
+    
+    
+    ActiveWindow.ScrollColumn = 1
+    Range("B6").Select
+    
+    
+
+ On Error Resume Next
+
+    Application.DisplayAlerts = False
+    Sheets("CPE_Residual").Select
+    Sheets("CPE_Residual").Delete
+    Sheets("CPE_fitting").Select
+    Sheets("CPE_fitting").Delete
+    Sheets("CPE_Raw").Select
+    Sheets("CPE_Raw").Delete
+    Sheets("CPE_information").Select
+    Sheets("CPE_information").Delete
+    
+ On Error GoTo 0
+
+End Sub
+
+Sub TROCS_clear()
+
+
+    
+On Error Resume Next
+
+    Application.DisplayAlerts = False
+    Sheets("TROCS_fitting").Select
+    Sheets("TROCS_fitting").Delete
+    
+ On Error GoTo 0
+    
+    
+
+    
+End Sub
+
+Sub TROCS_all_clear()
+
+
+    If Sheets("TROCS").Visible = True Then
+     
+       use_TROCS = True
+       
+    Else
+    
+       use_TROCS = False
+    
+    End If
+
+
+
+    Sheets("TROCS").Visible = True
+    
+    Sheets("TROCS").Select
+    rows("7:7").Select
+    Range(Selection, Selection.End(xlDown)).Select
+    Selection.Delete Shift:=xlUp
+    
+    ActiveWindow.ScrollColumn = 1
+    Range("B6").Select
+    
+    
+    If use_TROCS = False Then
+    
+       Sheets("TROCS").Visible = False
+    
+    End If
+    
+    
+
+    On Error Resume Next
+    
+    
+        Application.DisplayAlerts = False
+        
+        Sheets("TROCS_fitting").Select
+        Sheets("TROCS_fitting").Delete
+        
+    On Error GoTo 0
+        
+    
+
+    
+End Sub
+Sub side_map_clear()
+
+ Application.ScreenUpdating = False
+
+ On Error Resume Next
+
+    Application.DisplayAlerts = False
+    
+    Sheets("MAP_Raw").Select
+    Sheets("MAP_Raw").Delete
+    Sheets("MAP_Residual").Select
+    Sheets("MAP_Residual").Delete
+    Sheets("MAP_Fitting").Select
+    Sheets("MAP_Fitting").Delete
+    Sheets("MAP_Spec").Select
+    Sheets("MAP_Spec").Delete
+    Sheets("MAP_MRC").Select
+    Sheets("MAP_MRC").Delete
+    Sheets("MAP_EWMA_residual").Select
+    Sheets("MAP_EWMA_residual").Delete
+    
+    
+    
+    Sheets("CPE_Raw").Select
+    Sheets("CPE_Raw").Delete
+    Sheets("CPE_Residual").Select
+    Sheets("CPE_Residual").Delete
+    Sheets("CPE_fitting").Select
+    Sheets("CPE_fitting").Delete
+    Sheets("CPE_information").Select
+    Sheets("CPE_information").Delete
+    
+    
+    Application.DisplayAlerts = True
+ On Error GoTo 0
+ 
+ 
+ ThisWorkbook.Sheets("Run").Select
+ 
+ 
+  Application.ScreenUpdating = True
+
+End Sub
+
+Sub vspec_control()
+
+spec_option = ThisWorkbook.Sheets("Option table").Range("D5").value
+
+ Select Case spec_option
+  Case 1
+ 
+  ThisWorkbook.Sheets("Run").Range("J8").value = ""
+ 
+  Case 2
+ 
+      If I_have_vector_spec = False Then
+       
+        Call vspec_selector
+
+       
+       End If
+
+ End Select
+
+End Sub
+
+
+Sub Regression_option_clear()
+
+
+
+Regression_option = ThisWorkbook.Sheets("Option table").Range("D43").value
+
+
+If Regression_option = True Then
+
+   ThisWorkbook.Sheets("Option table").Range("D7").value = False
+   ThisWorkbook.Sheets("Option table").Range("D40").value = False
+   ThisWorkbook.Sheets("Option table").Range("D41").value = 1
+
+End If
+
+End Sub
+
+Sub Regression_option_clear2()
+
+
+
+Regression_option2 = ThisWorkbook.Sheets("Option table").Range("D7").value
+
+
+If Regression_option2 = True Then
+
+   ThisWorkbook.Sheets("Option table").Range("D43").value = False
+
+
+End If
+
+End Sub
