@@ -1,0 +1,416 @@
+ Option Base 1
+   
+
+
+Type shot_info
+
+   Die_No As Variant
+   Points_virtual As Variant
+   Points_real As Variant
+   test_No As Variant
+
+End Type
+
+    Public shot_information() As shot_info
+  
+    
+    Public eq_ArrX() As Variant
+    Public eq_ArrY() As Variant
+    Public k_ArrX() As Variant
+    Public k_ArrY() As Variant
+    Public d_ArrX() As Variant
+    Public d_ArrY() As Variant
+    
+    Public kn_X() As Variant
+    Public kn_Y() As Variant
+    Public K_SIZE_X As Long
+    Public K_SIZE_Y As Long
+    Public K_SIZE_MAX As Long
+    Public wafer_count() As Long
+    Public wafer_slot() As Variant
+    Public wafer_test_count() As Long
+    Public option_Roff_calculation As Variant
+    Public option_per_wafer As Variant
+    Public option_matrix_logging As Variant
+    Public current_wafer As Variant
+    Public raw_size As Long
+    Public option_wafer_order As Long
+    Public option_reticle_order As Long
+    Public how_many_wafers As Long
+    Public how_many_tests As Long
+    Public case_select As Variant
+    Public count As Integer, test As Integer
+    Public dx As Variant
+    Public dy As Variant
+    Public inverse_k_Arr_X() As Variant
+    Public inverse_k_Arr_Y() As Variant
+
+    Public X_ArrX() As Variant
+    Public X_ArrY() As Variant
+    Public Xt_ArrX() As Variant
+    Public Xt_ArrY() As Variant
+
+    Public X_hat_ii() As Variant
+    Public Y_hat_ii() As Variant
+    
+    
+    Public test_for_waferfield_calculation_CPE() As Variant
+    Public test_color() As Variant
+    Public valid_corner() As Variant
+    
+    Public hat_matrix_X() As Variant
+    Public hat_matrix_Y() As Variant
+    
+    Public Span_XY() As Variant
+    Public Span_over_XY() As Variant
+    
+    Public Span_OVO2() As Variant
+    Public Span_OVO3_22p() As Variant
+    Public Span_OVO3_33p() As Variant
+    Public Span_OVO3_38p() As Variant
+    Public Span_OVO4_57p() As Variant
+    Public Span_OVO5_170p() As Variant
+    Public Ridge_valve() As Variant
+
+    'SVD====================
+    Public SVD_rank_wafer_x As Single
+    Public SVD_rank_wafer_y As Single
+    Public SVD_rank_reticle_x As Single
+    Public SVD_rank_reticle_y As Single
+    
+    
+    Public multi_x(), multi_y() As Variant
+    Public unit_factor_X, unit_factor_Y, _
+              unit_off, unit_1st, unit_2nd, unit_3rd, unit_4th, unit_5th, unit_6th, unit_7th, unit_8th, unit_9th, unit_nm As Variant
+           
+   Public uk1, _
+            uk3, uk5, _
+            uk7, uk9, uk11, _
+            uk13, uk15, uk17, uk19, _
+            uk21, uk23, uk25, uk27, uk29, _
+            uks31, uk33, uk35, uk37, uk39, uk41, _
+            uks43, uks45, uk47, uk49, uk51, uk53, uks55, _
+            uks57, uks59, uks61, uk63, uk65, uk67, uks69, uks71, _
+            uks73, uks75, uks77, uks79, uk81, uk83, uks85, uks87, uks89, _
+            uks91, uks93, uks95, uks97, uks99, uk101, uks103, uks105, uks107, uks109, _
+            uks111, uks113, uks115, uks117, uks119, uks121, uks123, uks125, uks127, uks129, uks131, _
+            uks133, uks135, uks137, uks139, uks141, uks143, us145, uks147, uks149, uks151, uks153, uks155, _
+            uks157, uks159, uks161, uks163, uks165, uks167, us169, us171, uks173, uks175, uks177, uks179, uks181, _
+            uks183, uks185, uks187, uks189, uks191, uks193, us195, us197, us199, uks201, uks203, uks205, uks207, uks209, _
+            uks211, uks213, uks215, uks217, uks219, uks221, us223, us225, us227, us229, uks231, uks233, uks235, uks237, uks239, _
+            uks241, uks243, uks245, uks247, uks249, uks251, us253, us255, us257, us259, us261, uks263, uks265, uks267, uks269, uks271, _
+            uks273, uks275, uks277, uks279, uks281, uks283, us285, us287, us289, us291, us293, us295, uks297, uks299, uks301, uks303, uks305, _
+            uks307, uks309, uks311, uks313, uks315, uks317, us319, us321, us323, us325, us327, us329, us331, uks333, uks335, uks337, uks339, uks341  As Variant
+
+  Public uk2, _
+            uk4, uk6, _
+            uk8, uk10, uk12, _
+            uk14, uk16, uk18, uk20, _
+            uk22, uk24, uk26, uk28, uk30, _
+            uk32, uk34, uk36, uk38, uk40, uks42, _
+            uks44, uk46, uk48, uk50, uk52, uks54, uks56, _
+            uks58, uks60, uk62, uk64, uk66, uks68, uks70, uks72, _
+            uks74, uks76, uks78, uk80, uk82, uks84, uks86, uks88, uks90, _
+            uks92, uks94, uks96, uks98, uk100, uks102, uks104, uks106, uks108, uks110, _
+            uks112, uks114, uks116, uks118, uks120, uks122, uks124, uks126, uks128, uks130, uks132, _
+            uks134, uks136, uks138, uks140, uks142, us144, uks146, uks148, uks150, uks152, uks154, uks156, _
+            uks158, uks160, uks162, uks164, uks166, us168, us170, uks172, uks174, uks176, uks178, uks180, uks182, _
+            uks184, uks186, uks188, uks190, uks192, us194, us196, us198, uks200, uks202, uks204, uks206, uks208, uks210, _
+            uks212, uks214, uks216, uks218, uks220, us222, us224, us226, us228, uks230, uks232, uks234, uks236, uks238, uks240, _
+            uks242, uks244, uks246, uks248, uks250, us252, us254, us256, us258, us260, uks262, uks264, uks266, uks268, uks270, uks272, _
+            uks274, uks276, uks278, uks280, uks282, us284, us286, us288, us290, us292, us294, uks296, uks298, uks300, uks302, uks304, uks306, _
+            uks308, uks310, uks312, uks314, uks316, us318, us320, us322, us324, us326, us328, us330, uks332, uks334, uks336, uks338, uks340, uks342 As Variant
+    
+    
+   
+Sub CPE_MAIN()
+   
+    Call CPE_clear
+    Call copy_residual
+    
+'    ThisWorkbook.Save
+    
+    ThisWorkbook.Sheets("CPE").Range("M2").value = Now()
+    ThisWorkbook.Sheets("CPE").Range("N2").value = Empty
+    
+    
+    Call CPE_make_table
+    
+    
+    ThisWorkbook.Sheets("CPE").Range("N2").value = Now()
+    
+    
+    
+    
+    Call CPE_residual_and_fitting_analysis
+    Call CPE_drawing
+
+    
+
+End Sub
+Sub CPE_step0()
+
+    Call CPE_clear
+    Call copy_residual
+
+End Sub
+Sub CPE_step1()
+    
+    
+
+    Call clear_CPE_Regression_1
+    
+'    ThisWorkbook.Save
+    
+    
+    ThisWorkbook.Sheets("CPE").Range("M2").value = Now()
+    ThisWorkbook.Sheets("CPE").Range("N2").value = Empty
+    
+    Call CPE_make_table
+
+    ThisWorkbook.Sheets("CPE").Range("N2").value = Now()
+    Call CPE_residual_and_fitting_analysis
+    
+End Sub
+Sub CPE_step2()
+    
+    
+
+    Call clear_CPE_Regression_1
+'    ThisWorkbook.Save
+    
+    ThisWorkbook.Sheets("CPE").Range("M2").value = Now()
+    ThisWorkbook.Sheets("CPE").Range("N2").value = Empty
+    Call CPE_make_table
+
+    ThisWorkbook.Sheets("CPE").Range("N2").value = Now()
+End Sub
+Sub CPE_step3()
+    Call clear_CPE_Regression_2
+    Call sorting_cpe
+    Call CPE_residual_and_fitting_analysis
+
+
+End Sub
+Sub CPE_step4()
+    Call clear_CPE_Regression_3
+    Call CPE_fitting_analysis
+
+
+End Sub
+Sub CPE_mapping_main()
+
+
+
+    Call CPE_drawing
+
+End Sub
+Sub copy_raw()
+
+' raw data 복사=========================================================================================================================
+    
+    Call raw_data_information(raw_size, how_many_wafers, how_many_tests, wafer_count, wafer_test_count, wafer_slot)
+
+   
+  
+    
+   
+    On Error Resume Next
+         Sheets("CPE").Visible = True
+
+         Sheets("CPE").Select
+         rows("7:7").Select
+         Range(Selection, Selection.End(xlDown)).Select
+         Selection.ClearContents
+         rows("7:7").Select
+         Range(Selection, Selection.End(xlDown)).Select
+         Selection.ClearContents
+
+
+         ThisWorkbook.Sheets("Raw data").Select
+
+
+         Range("B6").Select
+
+         CPE_row = 1
+
+
+
+         For count = 1 To raw_size
+             wafer = ActiveCell.Cells(count, 1).value
+             test = ActiveCell.Cells(count, 2).value
+             LocNOX = ActiveCell.Cells(count, 3).value
+             LocNOY = ActiveCell.Cells(count, 4).value
+             residual_X = ActiveCell.Cells(count, 5).value
+             residual_Y = ActiveCell.Cells(count, 6).value
+             outlier_color_x = ActiveCell.Cells(count, 5).Font.Color
+             outlier_color_y = ActiveCell.Cells(count, 6).Font.Color
+
+
+             If outlier_color_x = 0 And outlier_color_y = 0 Then
+
+                ThisWorkbook.Sheets("CPE").Cells(CPE_row + 6, 2).value = wafer
+                ThisWorkbook.Sheets("CPE").Cells(CPE_row + 6, 3).value = test
+                ThisWorkbook.Sheets("CPE").Cells(CPE_row + 6, 4).value = LocNOX
+                ThisWorkbook.Sheets("CPE").Cells(CPE_row + 6, 5).value = LocNOY
+                ThisWorkbook.Sheets("CPE").Cells(CPE_row + 6, 6).value = residual_X
+                ThisWorkbook.Sheets("CPE").Cells(CPE_row + 6, 7).value = residual_Y
+
+                CPE_row = CPE_row + 1
+             End If
+
+         Next count
+
+    On Error GoTo 0
+
+   ThisWorkbook.Sheets("CPE").Select
+   Range("B6").Select
+   Application.StatusBar = "Raw Copy Completed."
+   
+End Sub
+
+
+Sub copy_residual()
+
+' residual data 복사=========================================================================================================================
+    
+    Call raw_data_information(raw_size, how_many_wafers, how_many_tests, wafer_count, wafer_test_count, wafer_slot)
+
+   
+  
+    
+   
+    On Error Resume Next
+         Sheets("CPE").Visible = True
+
+         Sheets("CPE").Select
+         rows("7:7").Select
+         Range(Selection, Selection.End(xlDown)).Select
+         Selection.ClearContents
+         rows("7:7").Select
+         Range(Selection, Selection.End(xlDown)).Select
+         Selection.ClearContents
+
+
+         ThisWorkbook.Sheets("Raw data").Select
+
+
+         Range("AB6").Select
+
+         CPE_row = 1
+
+
+
+         For count = 1 To raw_size
+             wafer = ActiveCell.Cells(count, 1).value
+             test = ActiveCell.Cells(count, 2).value
+             LocNOX = ActiveCell.Cells(count, 3).value
+             LocNOY = ActiveCell.Cells(count, 4).value
+             residual_X = ActiveCell.Cells(count, 5).value
+             residual_Y = ActiveCell.Cells(count, 6).value
+             outlier_color_x = ActiveCell.Cells(count, 5).Font.Color
+             outlier_color_y = ActiveCell.Cells(count, 6).Font.Color
+
+
+             If outlier_color_x = 0 And outlier_color_y = 0 Then
+
+                ThisWorkbook.Sheets("CPE").Cells(CPE_row + 6, 2).value = wafer
+                ThisWorkbook.Sheets("CPE").Cells(CPE_row + 6, 3).value = test
+                ThisWorkbook.Sheets("CPE").Cells(CPE_row + 6, 4).value = LocNOX
+                ThisWorkbook.Sheets("CPE").Cells(CPE_row + 6, 5).value = LocNOY
+                ThisWorkbook.Sheets("CPE").Cells(CPE_row + 6, 6).value = residual_X
+                ThisWorkbook.Sheets("CPE").Cells(CPE_row + 6, 7).value = residual_Y
+
+                CPE_row = CPE_row + 1
+             End If
+
+         Next count
+
+    On Error GoTo 0
+
+   ThisWorkbook.Sheets("CPE").Select
+   Range("B6").Select
+   Application.StatusBar = "Residual Copy Completed."
+   
+End Sub
+Sub CPE_raw_data_information(CPE_raw_size, how_many_wafers, how_many_tests, CPE_wafer_count, wafer_slot)
+
+    '===================================================================================
+    
+    Dim wafers, wafer1, wafer2, tests, test1, test2, W As Long
+    
+    
+'    how_many_wafers = ThisWorkbook.Sheets("Run").Range("D9").Value
+    how_many_tests = ThisWorkbook.Sheets("Run").Range("D10").value
+    
+    
+    
+    
+'======================================================================= data size 분석
+
+
+
+
+  Set Rawsheet = ThisWorkbook.Sheets("CPE")
+  
+    CPE_raw_size = 1
+    how_many_wafers = 1
+    
+    wafer_name_1 = Rawsheet.Cells(7, 2).value
+   Do While IsEmpty(Rawsheet.Cells(7 + CPE_raw_size, 2).value) = False
+             wafer_name_2 = Rawsheet.Cells(7 + CPE_raw_size, 2).value
+             
+             If wafer_name_1 <> wafer_name_2 Then
+                how_many_wafers = how_many_wafers + 1
+                wafer_name_1 = wafer_name_2
+             End If
+             
+             
+             
+            CPE_raw_size = CPE_raw_size + 1
+            
+            
+            
+    Loop
+   
+
+            
+            
+    ReDim CPE_wafer_count(how_many_wafers), wafer_slot(how_many_wafers)
+            
+     wafers = 1
+     tests = 1
+     CPE_wafer_count(wafers) = 1
+     
+     
+  If how_many_wafers = 1 Then wafer_slot(wafers) = Rawsheet.Cells(7, 2).value
+     
+  For t = 2 To CPE_raw_size
+  
+     wafer1 = Rawsheet.Cells(6 + t - 1, 2).value
+     wafer2 = Rawsheet.Cells(6 + t, 2).value
+
+  
+        If wafer1 = wafer2 Then
+                            CPE_wafer_count(wafers) = CPE_wafer_count(wafers) + 1
+                            
+                            
+                            
+                           Else:
+                           
+                            wafer_slot(wafers) = wafer1
+                            wafers = wafers + 1
+                            wafer_slot(wafers) = wafer2
+                            
+                            CPE_wafer_count(wafers) = 1
+
+                            
+       End If
+       
+  Next t
+
+
+g = g
+
+
+End Sub
