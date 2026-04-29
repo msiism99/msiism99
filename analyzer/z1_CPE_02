@@ -1,0 +1,1027 @@
+
+
+Sub CPE_make_table()
+
+
+'   Call raw_data_information(raw_size, how_many_wafers, how_many_tests, wafer_count, wafer_test_count, wafer_slot)
+   
+    how_many_tests = ThisWorkbook.Sheets("Run").Range("D10").value
+
+    ActiveWindow.ScrollColumn = 1
+    Application.StatusBar = "Doing CPE analysis...."
+    
+    
+'   ==============================================================================
+  Dim pi As Variant
+  pi = 3.14159265358979
+  
+
+  
+  G_opt_spec = ThisWorkbook.Sheets("CPE").Range("V4").value
+  
+  G_opt_tolerlance_initial = 0.001
+  G_opt_tolerlance = 0.001
+  
+'  G_opt_tolerlance_initial = 0.000001
+'  G_opt_tolerlance = 0.000001
+  
+  span_tolerlance = 0.01
+  
+  
+'  minimum_Ridge = 0.0000000000001
+  minimum_Ridge = 0.001
+'  minimum_Ridge = 0.1
+'   ==============================================================================
+  
+
+           
+   add_ridge = 10  '
+   add_ridge_span = 1  ' span over시 ridge parameter 증가시키 initial 값
+   add_ridge_span1 = 0.01
+
+
+ '==============================================================
+   max_prevent_fallback_retrun = 50
+
+   max_span_retrun = 1000
+   
+   
+'   경사하강법 기준정보=============================================================================
+        eta = 1  '초기 학습율
+        max_iter = 5000
+        tol = 0.000001
+
+'        divergence_criteria = 500    'nm
+'==========================================================================================
+
+    
+   
+'   =================== 가상격자 수 계산
+
+    Call Vgrid(x_number_of_fitting_points, y_number_of_fitting_points)
+ 
+    Vgrid_XY = x_number_of_fitting_points * y_number_of_fitting_points
+    
+'    ======================================================================
+
+    fallback_option = ThisWorkbook.Sheets("Option table").Range("D42").value
+    regression_order = ThisWorkbook.Sheets("Option table").Range("D27").value
+    Fingerprint_removal = ThisWorkbook.Sheets("Option table").Range("D45").value
+    interpolation_TPS = ThisWorkbook.Sheets("Option table").Range("D60").value
+    
+    
+    
+   
+    wafer_size = ThisWorkbook.Sheets("Run").Range("F12").value
+    step_pitch_x = ThisWorkbook.Worksheets("Run").Range("F3").value
+    step_pitch_y = ThisWorkbook.Worksheets("Run").Range("G3").value
+    ShiftX = ThisWorkbook.Sheets("Run").Range("F7").value
+    ShiftY = ThisWorkbook.Sheets("Run").Range("G7").value
+    round_clear = ThisWorkbook.Sheets("Run").Range("F10").value
+    wafer_radius = ThisWorkbook.Sheets("Run").Range("F12").value / 2
+    outlier_radius = wafer_radius - round_clear
+    
+    round_clear_map_size = map_size * outlier_radius / wafer_radius
+    
+    
+    Ridge_regression = ThisWorkbook.Sheets("Option table").Range("D26").value
+    
+'    ramda_ridge = ThisWorkbook.Sheets("CPE").Range("U2").Value
+'    ramda_ridge_edge = ThisWorkbook.Sheets("CPE").Range("U3").Value
+    ramda_ridge = 0
+    ramda_ridge_edge = 0
+    
+    
+    
+'    max_ridge = ThisWorkbook.Sheets("CPE").Range("U4").Value
+    max_ridge = 0
+    
+    unit_display = ThisWorkbook.Sheets("Option table").Range("D55").value
+    residual_per_shot = ThisWorkbook.Sheets("Option table").Range("D38").value
+    ridge_logging = ThisWorkbook.Sheets("Option table").Range("D48").value
+    G_optimal_type = ThisWorkbook.Sheets("Option table").Range("D59").value
+    
+    
+    
+    
+
+    
+       
+      
+'header =======================================================================================================================================================================
+    interpolation_TPS = ThisWorkbook.Sheets("Option table").Range("D60").value
+   
+   ThisWorkbook.Sheets("CPE").Cells(5, 2).value = "CPE Raw"
+   ThisWorkbook.Sheets("CPE").Cells(6, 2).value = "Wafer"
+   ThisWorkbook.Sheets("CPE").Cells(6, 3).value = "Test"
+   ThisWorkbook.Sheets("CPE").Cells(6, 4).value = "DieX"
+   ThisWorkbook.Sheets("CPE").Cells(6, 5).value = "DieY"
+   ThisWorkbook.Sheets("CPE").Cells(6, 6).value = "raw_X(um)"
+   ThisWorkbook.Sheets("CPE").Cells(6, 7).value = "raw_Y(um)"
+   
+   
+   
+   
+   ThisWorkbook.Sheets("CPE").Cells(6, 9).value = "Wafer"
+   ThisWorkbook.Sheets("CPE").Cells(6, 10).value = "Test"
+   ThisWorkbook.Sheets("CPE").Cells(6, 11).value = "DieX"
+   ThisWorkbook.Sheets("CPE").Cells(6, 12).value = "DieY"
+   ThisWorkbook.Sheets("CPE").Cells(6, 13).value = "CPE_residual_X(um)"
+   ThisWorkbook.Sheets("CPE").Cells(6, 14).value = "CPE_residual_Y(um)"
+   
+   
+   
+   
+   ThisWorkbook.Sheets("CPE").Cells(6, 15).value = "Zone"
+   ThisWorkbook.Sheets("CPE").Cells(6, 16).value = "Wafer"
+   ThisWorkbook.Sheets("CPE").Cells(6, 17).value = "Test"
+   ThisWorkbook.Sheets("CPE").Cells(6, 18).value = "DieX"
+   ThisWorkbook.Sheets("CPE").Cells(6, 19).value = "DieY"
+   ThisWorkbook.Sheets("CPE").Cells(6, 20).value = "CPE_fitting_X(um)"
+   ThisWorkbook.Sheets("CPE").Cells(6, 21).value = "CPE_fitting_Y(um)"
+   
+   ThisWorkbook.Sheets("CPE").Cells(5, 23).value = "CPE Regression"
+   ThisWorkbook.Sheets("CPE").Cells(6, 23).value = "Wafer"
+   ThisWorkbook.Sheets("CPE").Cells(6, 24).value = "Information"
+   
+   ThisWorkbook.Sheets("CPE").Cells(3, 6).value = "X mean+3σ(nm)"
+   ThisWorkbook.Sheets("CPE").Cells(3, 7).value = "Y mean+3σ(nm)"
+   ThisWorkbook.Sheets("CPE").Cells(3, 13).value = "X mean+3σ(nm)"
+   ThisWorkbook.Sheets("CPE").Cells(3, 14).value = "Y mean+3σ(nm)"
+'   ThisWorkbook.Sheets("CPE").Cells(2, 20).Value = "Ridge Parameter (inner)"
+'   ThisWorkbook.Sheets("CPE").Cells(3, 20).Value = "Ridge Parameter (edge)"
+   
+   If Ridge_regression = True Then
+        ThisWorkbook.Sheets("CPE").Cells(6, 25).value = "Ridge on"
+   Else
+   
+        ThisWorkbook.Sheets("CPE").Cells(6, 25).value = "Ridge off"
+   
+   End If
+   
+   ThisWorkbook.Sheets("CPE").Cells(6, 26).value = "DieX"
+   ThisWorkbook.Sheets("CPE").Cells(6, 27).value = "DieY"
+   
+   If residual_per_shot = 1 Then
+   
+      ThisWorkbook.Sheets("CPE").Cells(6, 28).value = "Resi_mean_X(nm)"
+      ThisWorkbook.Sheets("CPE").Cells(6, 29).value = "Resi_mean_Y(nm)"
+   
+   Else
+   
+      ThisWorkbook.Sheets("CPE").Cells(6, 28).value = "Resi_m3s_X(nm)"
+      ThisWorkbook.Sheets("CPE").Cells(6, 29).value = "Resi_m3s_Y(nm)"
+      
+   End If
+   
+   
+   ThisWorkbook.Sheets("CPE").Cells(6, 30).value = "METRO_LOC_X(um)"
+   ThisWorkbook.Sheets("CPE").Cells(6, 31).value = "METRO_LOC_Y(um)"
+   
+   RK_start = 31
+   
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 1).value = "0th"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 3).value = "1st"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 7).value = "2nd"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 13).value = "3rd"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 21).value = "4th"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 31).value = "5th"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 43).value = "6th"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 57).value = "7th"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 73).value = "8th"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 91).value = "9th"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 111).value = "10th"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 133).value = "11th"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 157).value = "12th"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 183).value = "13th"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 211).value = "14th"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 241).value = "15th"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 273).value = "16th"
+    ThisWorkbook.Sheets("CPE").Cells(5, RK_start + 307).value = "17th"
+    
+    
+    
+    Call RK_name(RK_index)   'RK_index 호출
+    
+   Select Case unit_display
+   
+   
+    Case 1
+    
+        For k = 1 To 342
+            ThisWorkbook.Sheets("CPE").Cells(6, RK_start + k).value = RK_index(k) & "(nm)"
+            If ridge_logging = True Then
+              ThisWorkbook.Sheets("CPE").Cells(6, RK_start + k + 342).value = "λ_" & RK_index(k)
+            End If
+        Next k
+    
+    Case 2
+        For k = 1 To 342
+            ThisWorkbook.Sheets("CPE").Cells(6, RK_start + k).value = RK_index(k) & "(A)"
+            
+            If ridge_logging = True Then
+              ThisWorkbook.Sheets("CPE").Cells(6, RK_start + k + 342).value = "λ_" & RK_index(k)
+            End If
+        
+        Next k
+    
+    Case 3
+        For k = 1 To 342
+            ThisWorkbook.Sheets("CPE").Cells(6, RK_start + k).value = RK_index(k) & "(G)"
+            If ridge_logging = True Then
+                  ThisWorkbook.Sheets("CPE").Cells(6, RK_start + k + 342).value = "λ_" & RK_index(k)
+            End If
+        Next k
+        
+   End Select
+   
+       
+'===================================================================================================================================================================
+    
+
+    
+    
+
+
+    Dim count As Long
+    Dim wafer As Variant
+    Dim test As Variant
+    Dim LocNOX As Long
+    Dim LocNOY As Long
+    Dim residual_X As Variant
+    Dim residual_Y As Variant
+    Dim outlier_color_x As Variant
+    Dim outlier_color_y As Variant
+    Dim CPE_row As Long
+    Dim Regression_code As Variant
+    
+    
+    
+    
+    
+
+ '정렬 ==================================================================================================================================================================
+
+    Sheets("CPE").Select
+    Range("B6").Select
+    Range(Selection, Selection.End(xlToRight)).Select
+    Range(Selection, Selection.End(xlDown)).Select
+
+    Selection.Sort Key1:=Range("C7"), Order1:=xlAscending, header:=xlGuess, OrderCustom:=1, MatchCase:=False, Orientation:=xlTopToBottom, DataOption1:=xlSortNormal
+
+    Selection.Sort Key1:=Range("B7"), Order1:=xlAscending, Key2:=Range( _
+       "D7"), Order2:=xlAscending, Key3:=Range("E7"), Order3:=xlDescending, _
+       header:=xlGuess, OrderCustom:=1, MatchCase:=False, Orientation:= _
+       xlTopToBottom, DataOption1:=xlSortNormal, DataOption2:=xlSortNormal, _
+       DataOption3:=xlSortNormal
+       
+   Range("B6").Select
+   ThisWorkbook.Save
+       
+       
+    '  m+3sig 구하기  ===================================================================================================================================
+    
+    Dim mean_X As Variant
+    Dim mean_Y As Variant
+    Dim std_X As Variant
+    Dim std_Y As Variant
+    Dim mean3sig_X As Variant
+    Dim mean3sig_Y As Variant
+    Dim sum_x As Variant
+    Dim sum_y As Variant
+    Dim sum_x2 As Variant
+    Dim sum_y2 As Variant
+    
+    
+    sum_x = 0
+    sum_y = 0
+    sum_x2 = 0
+    sum_y2 = 0
+    
+    
+    start_row = 6
+    count = 1
+
+    
+    Do While IsEmpty(ThisWorkbook.Sheets("CPE").Cells(start_row + count, 2).value) = False
+    
+        data_x = ThisWorkbook.Sheets("CPE").Cells(start_row + count, 6).value
+        data_y = ThisWorkbook.Sheets("CPE").Cells(start_row + count, 7).value
+        
+        
+        sum_x = sum_x + data_x
+        sum_y = sum_y + data_y
+        sum_x2 = sum_x2 + data_x ^ 2
+        sum_y2 = sum_y2 + data_y ^ 2
+        
+        
+        count = count + 1
+    
+    Loop
+     total_size = count - 1
+    
+
+    mean_X = (sum_x / total_size) * 1000 'nm
+    mean_Y = (sum_y / total_size) * 1000 'nm
+    
+    std_X = (Sqr(Abs(total_size * sum_x2 - sum_x ^ 2) / (total_size * (total_size - 1)))) * 1000 'nm
+    std_Y = (Sqr(Abs(total_size * sum_y2 - sum_y ^ 2) / (total_size * (total_size - 1)))) * 1000  'nm
+    
+    
+    
+    
+    
+    mean3sig_X = Abs(mean_X) + 3 * std_X 'nm
+    mean3sig_Y = Abs(mean_Y) + 3 * std_Y  'nm
+    
+    
+    ThisWorkbook.Sheets("CPE").Range("F4").value = Round(mean3sig_X, 3)
+    ThisWorkbook.Sheets("CPE").Range("G4").value = Round(mean3sig_Y, 3)
+'    =========================================================================================================================
+             
+ Application.ScreenUpdating = False
+        
+'  Fingerprint 제거 (옵션) ==========================================================================================
+
+    test_start = ThisWorkbook.Sheets("Run").Cells(15 + 1, 3).value
+    test_end = ThisWorkbook.Sheets("Run").Cells(15 + how_many_tests, 3).value
+    
+    
+    ReDim test_Number(test_end) As Variant
+    ReDim sum_dx(test_end) As Variant
+    ReDim sum_dy(test_end) As Variant
+    ReDim average_dx(test_end) As Variant
+    ReDim average_dy(test_end) As Variant
+    ReDim count_dx(test_end) As Long
+    ReDim count_dy(test_end) As Long
+    
+    For count = 1 To how_many_tests
+    
+        test_Number(count) = ThisWorkbook.Sheets("Run").Cells(15 + count, 3).value
+    
+    Next count
+   
+
+    row = 7
+    
+    
+    
+    If Fingerprint_removal = True Then
+    
+    
+    
+        Do While IsEmpty(ThisWorkbook.Sheets("CPE").Cells(row, 2).value) = False
+            test = ThisWorkbook.Sheets("CPE").Cells(row, 3).value
+            die_x = ThisWorkbook.Sheets("CPE").Cells(row, 4).value
+            die_y = ThisWorkbook.Sheets("CPE").Cells(row, 5).value
+            dx = ThisWorkbook.Sheets("CPE").Cells(row, 6).value
+            dy = ThisWorkbook.Sheets("CPE").Cells(row, 7).value
+            
+            Loc_X = die_x * step_pitch_x + ShiftX
+            Loc_Y = die_y * step_pitch_y + ShiftY
+            
+            UL_X = Loc_X - step_pitch_x / 2
+            UL_Y = Loc_Y + step_pitch_y / 2
+            UR_X = Loc_X + step_pitch_x / 2
+            UR_Y = Loc_Y + step_pitch_y / 2
+            LR_X = Loc_X + step_pitch_x / 2
+            LR_Y = Loc_Y - step_pitch_y / 2
+            LL_X = Loc_X - step_pitch_x / 2
+            LL_Y = Loc_Y - step_pitch_y / 2
+            
+            
+            point_radius_UL = (UL_X ^ 2 + UL_Y ^ 2) ^ 0.5
+            point_radius_UR = (UR_X ^ 2 + UR_Y ^ 2) ^ 0.5
+            point_radius_LR = (LR_X ^ 2 + LR_Y ^ 2) ^ 0.5
+            point_radius_LL = (LL_X ^ 2 + LL_Y ^ 2) ^ 0.5
+            
+            If point_radius_UL <= outlier_radius Then UL = 1 Else UL = 0
+            If point_radius_UR <= outlier_radius Then UR = 1 Else UR = 0
+            If point_radius_LR <= outlier_radius Then LR = 1 Else LR = 0
+            If point_radius_LL <= outlier_radius Then LL = 1 Else LL = 0
+            
+            
+            shot_condition = UL + UR + LR + LL
+            
+            If shot_condition = 4 Then
+                       
+                sum_dx(test) = sum_dx(test) + dx
+                sum_dy(test) = sum_dy(test) + dy
+                
+                count_dx(test) = count_dx(test) + 1
+                count_dy(test) = count_dy(test) + 1
+            
+            End If
+            
+            row = row + 1
+        Loop
+        
+        
+        For count = 1 To how_many_tests
+        
+           average_dx(test_Number(count)) = sum_dx(test_Number(count)) / count_dx(test_Number(count))
+           average_dy(test_Number(count)) = sum_dy(test_Number(count)) / count_dy(test_Number(count))
+           
+        
+        Next count
+        
+        
+    End If
+    
+
+   
+   
+   
+'===============================================================================================
+
+    Range("A2").Select
+    Dim F As Variant, g As Variant, shots As Variant
+
+
+    F = 7
+    g = 1
+    shots = 0
+    
+    test_start = ThisWorkbook.Sheets("Run").Cells(15 + 1, 3).value
+    test_end = ThisWorkbook.Sheets("Run").Cells(15 + how_many_tests, 3).value
+    ReDim shotLOC_ArrX(test_end) As Variant
+    ReDim shotLOC_ArrY(test_end) As Variant
+
+
+
+    For count = 1 To how_many_tests
+    
+               test = ThisWorkbook.Sheets("Run").Cells(15 + count, 3).value
+               shotLOC_ArrX(test) = ThisWorkbook.Sheets("Run").Cells(15 + count, 4).value
+               shotLOC_ArrY(test) = ThisWorkbook.Sheets("Run").Cells(15 + count, 5).value
+
+    Next count
+'
+
+
+    Call shot_info_real(Test_Arry, DieX_Arry, DieY_Arry, total_shots_real, How_many_tests_per_shot_real)
+  
+' virtual shot information   : 가상격자===================================================================================================
+
+    Call shot_info_virtual(total_shots, number_of_fitting_points, Test_Arry, virtual_shotLOC_ArrX, virtual_shotLOC_ArrY, How_many_tests_per_shot, virtual_DieX_Arry, virtual_DieY_Arry)
+    
+
+    
+    ReDim shot_information(total_shots) As shot_info
+    
+    
+    If total_shots = total_shots_real Then
+    
+    
+            For shot = 1 To total_shots
+                shot_information(shot).Die_No = virtual_DieX_Arry(shot) & "," & virtual_DieY_Arry(shot)
+                shot_information(shot).Points_virtual = How_many_tests_per_shot(shot)
+                shot_information(shot).Points_real = How_many_tests_per_shot_real(shot)
+                
+                
+                
+                shot_information(shot).test_No = Test_Arry(shot, 1)
+                For test = 2 To How_many_tests_per_shot(shot)
+                  shot_information(shot).test_No = shot_information(shot).test_No & "." & Test_Arry(shot, test)
+                Next test
+              
+            Next shot
+    
+    Else
+            For shot = 1 To total_shots
+                shot_information(shot).Die_No = virtual_DieX_Arry(shot) & "," & virtual_DieY_Arry(shot)
+                shot_information(shot).Points_virtual = How_many_tests_per_shot(shot)
+                
+                For shot_real = 1 To total_shots_real
+                     shot_die_no_real = DieX_Arry(shot_real) & "," & DieY_Arry(shot_real)
+                     If shot_information(shot).Die_No = shot_die_no_real Then
+            
+                         shot_information(shot).Points_real = How_many_tests_per_shot_real(shot_real)
+                
+                     End If
+                Next shot_real
+                 
+                shot_information(shot).test_No = Test_Arry(shot, 1)
+                For test = 2 To How_many_tests_per_shot(shot)
+                  shot_information(shot).test_No = shot_information(shot).test_No & "." & Test_Arry(shot, test)
+                Next test
+              
+            Next shot
+    
+    
+    
+    
+    End If
+    
+    
+    
+    
+    
+    
+    ReDim max_X_hat_ii_Arr(total_shots) As Variant
+    ReDim max_Y_hat_ii_Arr(total_shots) As Variant
+  
+  
+  
+'============================================================================================================================================
+    Dim unit_factor_X As Variant
+    Dim unit_factor_Y As Variant
+'=====================================================================================
+
+    Call round_off_protector_reticle(unit_factor_X, unit_factor_Y) ' shot size로 X matrix noramlize하는 기능 On
+
+'    unit_factor_X = 1   ' shot size로 X matrix noramlize하는 기능 off
+'    unit_factor_Y = 1   ' shot size로 X matrix noramlize하는 기능 off
+'======================================================================================
+'control span 가져오기 ===================================================================================================================================================================================
+   
+   
+   max_K_SIZE_X = 171
+   max_K_SIZE_Y = 171
+   max_K_SIZE = max_K_SIZE_X + max_K_SIZE_Y
+
+   ReDim Span_XY(max_K_SIZE) As Variant
+   ReDim Ridge_parameter_XY(max_K_SIZE) As Variant
+   
+   
+   ReDim Span_OVO2(max_K_SIZE) As Variant
+   ReDim Span_OVO3_22p(max_K_SIZE) As Variant
+   ReDim Span_OVO3_33p(max_K_SIZE) As Variant
+   ReDim Span_OVO3_38p(max_K_SIZE) As Variant
+   ReDim Span_OVO4_57p(max_K_SIZE) As Variant
+   ReDim Span_OVO5_170p(max_K_SIZE) As Variant
+   ReDim ridge_valve_1st(max_K_SIZE) As Variant
+   ReDim ridge_valve_3rd(max_K_SIZE) As Variant
+   ReDim ridge_valve_hyper(max_K_SIZE) As Variant
+ 
+   
+
+'=========================================================================================================================================================================================================
+
+Select Case unit_display
+
+
+    Case 1, 2
+
+        unit_off = 10 ^ -3     'nm                  ASML 단위
+        unit_1st = 10 ^ -6     'ppm
+        unit_2nd = 10 ^ -11    'nm/cm^2
+        unit_3rd = 10 ^ -15    'nm/cm^3
+        unit_4th = 10 ^ -19   'nm/cm^4
+        unit_5th = 10 ^ -23   'nm/cm^5
+        unit_6th = 10 ^ -27   'nm/cm^6
+        unit_7th = 10 ^ -31   'nm/cm^7
+        unit_8th = 10 ^ -35   'nm/cm^8
+        unit_9th = 10 ^ -39   'nm/cm^9
+        unit_nm = 10 ^ -3     'nm
+    
+    Case 3  ' GPM_hybrid
+    
+    
+        unit_off = 1          'um                  canon 단위
+        unit_1st = 10 ^ -6    'ppm
+        unit_2nd = 10 ^ -9    'ppg/um
+        unit_3rd = 10 ^ -12   'ppt/um^2
+        
+        unit_4th = 10 ^ -19   'nm/cm^4      ASML 단위
+        unit_5th = 10 ^ -23   'nm/cm^5
+        unit_6th = 10 ^ -27   'nm/cm^6
+        unit_7th = 10 ^ -31   'nm/cm^7
+        unit_8th = 10 ^ -35   'nm/cm^8
+        unit_9th = 10 ^ -39   'nm/cm^9
+        unit_nm = 10 ^ -3     'nm
+        
+        
+'        unit_4th = 10 ^ -16   'e^-16/um^3
+'        unit_5th = 10 ^ -20   'e^-20/um^4
+'        unit_6th = 10 ^ -24   'e^-24/um^5
+'        unit_7th = 10 ^ -28   'e^-28/um^6
+'        unit_8th = 10 ^ -32   'e^-32/um^7
+'        unit_9th = 10 ^ -36   'e^-36/um^8
+'        unit_nm = 10 ^ -3     'nm
+        
+End Select
+
+
+
+
+      uk1 = unit_off * 1
+      uk3 = unit_1st * unit_factor_X
+      uk5 = unit_1st * unit_factor_Y
+      uk7 = unit_2nd * unit_factor_X ^ 2
+      uk9 = unit_2nd * unit_factor_X * unit_factor_Y
+      uk11 = unit_2nd * unit_factor_Y ^ 2
+      uk13 = unit_3rd * unit_factor_X ^ 3
+      uk15 = unit_3rd * unit_factor_X ^ 2 * unit_factor_Y
+      uk17 = unit_3rd * unit_factor_X * unit_factor_Y ^ 2
+      uk19 = unit_3rd * unit_factor_Y ^ 3
+      uk21 = unit_4th * unit_factor_X ^ 4
+      uk23 = unit_4th * unit_factor_X ^ 3 * unit_factor_Y
+      uk25 = unit_4th * unit_factor_X ^ 2 * unit_factor_Y ^ 2
+      uk27 = unit_4th * unit_factor_X * unit_factor_Y ^ 3
+      uk29 = unit_4th * unit_factor_Y ^ 4
+      uks31 = unit_nm * unit_factor_X
+      uk33 = unit_5th * unit_factor_X ^ 4 * unit_factor_Y
+      uk35 = unit_5th * unit_factor_X ^ 3 * unit_factor_Y ^ 2
+      uk37 = unit_5th * unit_factor_X ^ 2 * unit_factor_Y ^ 3
+      uk39 = unit_5th * unit_factor_X * unit_factor_Y ^ 4
+      uk41 = unit_5th * unit_factor_Y ^ 5
+      uks43 = unit_nm * unit_factor_X
+      uks45 = unit_2nd * unit_factor_X * unit_factor_Y ^ 1
+      uk47 = unit_6th * unit_factor_X ^ 4 * unit_factor_Y ^ 2
+      uk49 = unit_6th * unit_factor_X ^ 3 * unit_factor_Y ^ 3
+      uk51 = unit_6th * unit_factor_X ^ 2 * unit_factor_Y ^ 4
+      uk53 = unit_6th * unit_factor_X ^ 1 * unit_factor_Y ^ 5
+      uks55 = unit_nm * unit_factor_Y
+      uks57 = unit_nm * unit_factor_X
+      uks59 = unit_2nd * unit_factor_X * unit_factor_Y ^ 1
+      uks61 = unit_3rd * unit_factor_X * unit_factor_Y ^ 2
+      uk63 = unit_7th * unit_factor_X ^ 4 * unit_factor_Y ^ 3
+      uk65 = unit_7th * unit_factor_X ^ 3 * unit_factor_Y ^ 4
+      uk67 = unit_7th * unit_factor_X ^ 2 * unit_factor_Y ^ 5
+      uks69 = unit_2nd * unit_factor_X ^ 1 * unit_factor_Y
+      uks71 = unit_nm * unit_factor_Y
+      uks73 = unit_nm * unit_factor_X
+      uks75 = unit_2nd * unit_factor_X * unit_factor_Y ^ 1
+      uks77 = unit_3rd * unit_factor_X * unit_factor_Y ^ 2
+      uks79 = unit_4th * unit_factor_X * unit_factor_Y ^ 3
+      uk81 = unit_8th * unit_factor_X ^ 4 * unit_factor_Y ^ 4
+      uk83 = unit_8th * unit_factor_X ^ 3 * unit_factor_Y ^ 5
+      uks85 = unit_3rd * unit_factor_X ^ 2 * unit_factor_Y
+      uks87 = unit_2nd * unit_factor_X ^ 1 * unit_factor_Y
+      uks89 = unit_nm * unit_factor_Y
+      uks91 = unit_nm * unit_factor_X
+      uks93 = unit_2nd * unit_factor_X * unit_factor_Y ^ 1
+      uks95 = unit_3rd * unit_factor_X * unit_factor_Y ^ 2
+      uks97 = unit_4th * unit_factor_X * unit_factor_Y ^ 3
+      uks99 = unit_5th * unit_factor_X * unit_factor_Y ^ 4
+      uk101 = unit_9th * unit_factor_X ^ 4 * unit_factor_Y ^ 5
+      uks103 = unit_4th * unit_factor_X ^ 3 * unit_factor_Y
+      uks105 = unit_3rd * unit_factor_X ^ 2 * unit_factor_Y
+      uks107 = unit_2nd * unit_factor_X ^ 1 * unit_factor_Y
+      uks109 = unit_nm * unit_factor_Y
+      uks111 = unit_nm * unit_factor_X
+      uks113 = unit_2nd * unit_factor_X * unit_factor_Y ^ 1
+      uks115 = unit_3rd * unit_factor_X * unit_factor_Y ^ 2
+      uks117 = unit_4th * unit_factor_X * unit_factor_Y ^ 3
+      uks119 = unit_5th * unit_factor_X * unit_factor_Y ^ 4
+      uks121 = unit_6th * unit_factor_X * unit_factor_Y ^ 5
+      uks123 = unit_5th * unit_factor_X ^ 4 * unit_factor_Y
+      uks125 = unit_4th * unit_factor_X ^ 3 * unit_factor_Y
+      uks127 = unit_3rd * unit_factor_X ^ 2 * unit_factor_Y
+      uks129 = unit_2nd * unit_factor_X ^ 1 * unit_factor_Y
+      uks131 = unit_nm * unit_factor_Y
+      uks133 = unit_nm * unit_factor_X
+      uks135 = unit_2nd * unit_factor_X * unit_factor_Y ^ 1
+      uks137 = unit_3rd * unit_factor_X * unit_factor_Y ^ 2
+      uks139 = unit_4th * unit_factor_X * unit_factor_Y ^ 3
+      uks141 = unit_5th * unit_factor_X * unit_factor_Y ^ 4
+      uks143 = unit_6th * unit_factor_X * unit_factor_Y ^ 5
+      us145 = unit_2nd * unit_factor_X * unit_factor_Y
+      uks147 = unit_5th * unit_factor_X ^ 4 * unit_factor_Y
+      uks149 = unit_4th * unit_factor_X ^ 3 * unit_factor_Y
+      uks151 = unit_3rd * unit_factor_X ^ 2 * unit_factor_Y
+      uks153 = unit_2nd * unit_factor_X ^ 1 * unit_factor_Y
+      uks155 = unit_nm * unit_factor_Y
+      uks157 = unit_nm * unit_factor_X
+      uks159 = unit_2nd * unit_factor_X * unit_factor_Y ^ 1
+      uks161 = unit_3rd * unit_factor_X * unit_factor_Y ^ 2
+      uks163 = unit_4th * unit_factor_X * unit_factor_Y ^ 3
+      uks165 = unit_5th * unit_factor_X * unit_factor_Y ^ 4
+      uks167 = unit_6th * unit_factor_X * unit_factor_Y ^ 5
+      us169 = unit_2nd * unit_factor_X * unit_factor_Y
+      us171 = unit_2nd * unit_factor_X * unit_factor_Y
+      uks173 = unit_5th * unit_factor_X ^ 4 * unit_factor_Y
+      uks175 = unit_4th * unit_factor_X ^ 3 * unit_factor_Y
+      uks177 = unit_3rd * unit_factor_X ^ 2 * unit_factor_Y
+      uks179 = unit_2nd * unit_factor_X ^ 1 * unit_factor_Y
+      uks181 = unit_nm * unit_factor_Y
+      uks183 = unit_nm * unit_factor_X
+      uks185 = unit_2nd * unit_factor_X * unit_factor_Y ^ 1
+      uks187 = unit_3rd * unit_factor_X * unit_factor_Y ^ 2
+      uks189 = unit_4th * unit_factor_X * unit_factor_Y ^ 3
+      uks191 = unit_5th * unit_factor_X * unit_factor_Y ^ 4
+      uks193 = unit_6th * unit_factor_X * unit_factor_Y ^ 5
+      us195 = unit_2nd * unit_factor_X * unit_factor_Y
+      us197 = unit_2nd * unit_factor_X * unit_factor_Y
+      us199 = unit_2nd * unit_factor_X * unit_factor_Y
+      uks201 = unit_5th * unit_factor_X ^ 4 * unit_factor_Y
+      uks203 = unit_4th * unit_factor_X ^ 3 * unit_factor_Y
+      uks205 = unit_3rd * unit_factor_X ^ 2 * unit_factor_Y
+      uks207 = unit_2nd * unit_factor_X ^ 1 * unit_factor_Y
+      uks209 = unit_nm * unit_factor_Y
+      uks211 = unit_nm * unit_factor_X
+      uks213 = unit_2nd * unit_factor_X * unit_factor_Y ^ 1
+      uks215 = unit_3rd * unit_factor_X * unit_factor_Y ^ 2
+      uks217 = unit_4th * unit_factor_X * unit_factor_Y ^ 3
+      uks219 = unit_5th * unit_factor_X * unit_factor_Y ^ 4
+      uks221 = unit_6th * unit_factor_X * unit_factor_Y ^ 5
+      us223 = unit_2nd * unit_factor_X * unit_factor_Y
+      us225 = unit_2nd * unit_factor_X * unit_factor_Y
+      us227 = unit_2nd * unit_factor_X * unit_factor_Y
+      us229 = unit_2nd * unit_factor_X * unit_factor_Y
+      uks231 = unit_5th * unit_factor_X ^ 4 * unit_factor_Y
+      uks233 = unit_4th * unit_factor_X ^ 3 * unit_factor_Y
+      uks235 = unit_3rd * unit_factor_X ^ 2 * unit_factor_Y
+      uks237 = unit_2nd * unit_factor_X ^ 1 * unit_factor_Y
+      uks239 = unit_nm * unit_factor_Y
+      uks241 = unit_nm * unit_factor_X
+      uks243 = unit_2nd * unit_factor_X * unit_factor_Y ^ 1
+      uks245 = unit_3rd * unit_factor_X * unit_factor_Y ^ 2
+      uks247 = unit_4th * unit_factor_X * unit_factor_Y ^ 3
+      uks249 = unit_5th * unit_factor_X * unit_factor_Y ^ 4
+      uks251 = unit_6th * unit_factor_X * unit_factor_Y ^ 5
+      us253 = unit_2nd * unit_factor_X * unit_factor_Y
+      us255 = unit_2nd * unit_factor_X * unit_factor_Y
+      us257 = unit_2nd * unit_factor_X * unit_factor_Y
+      us259 = unit_2nd * unit_factor_X * unit_factor_Y
+      us261 = unit_2nd * unit_factor_X * unit_factor_Y
+      uks263 = unit_5th * unit_factor_X ^ 4 * unit_factor_Y
+      uks265 = unit_4th * unit_factor_X ^ 3 * unit_factor_Y
+      uks267 = unit_3rd * unit_factor_X ^ 2 * unit_factor_Y
+      uks269 = unit_2nd * unit_factor_X ^ 1 * unit_factor_Y
+      uks271 = unit_nm * unit_factor_Y
+      uks273 = unit_nm * unit_factor_X
+      uks275 = unit_2nd * unit_factor_X * unit_factor_Y ^ 1
+      uks277 = unit_3rd * unit_factor_X * unit_factor_Y ^ 2
+      uks279 = unit_4th * unit_factor_X * unit_factor_Y ^ 3
+      uks281 = unit_5th * unit_factor_X * unit_factor_Y ^ 4
+      uks283 = unit_6th * unit_factor_X * unit_factor_Y ^ 5
+      us285 = unit_2nd * unit_factor_X * unit_factor_Y
+      us287 = unit_2nd * unit_factor_X * unit_factor_Y
+      us289 = unit_2nd * unit_factor_X * unit_factor_Y
+      us291 = unit_2nd * unit_factor_X * unit_factor_Y
+      us293 = unit_2nd * unit_factor_X * unit_factor_Y
+      us295 = unit_2nd * unit_factor_X * unit_factor_Y
+      uks297 = unit_5th * unit_factor_X ^ 4 * unit_factor_Y
+      uks299 = unit_4th * unit_factor_X ^ 3 * unit_factor_Y
+      uks301 = unit_3rd * unit_factor_X ^ 2 * unit_factor_Y
+      uks303 = unit_2nd * unit_factor_X ^ 1 * unit_factor_Y
+      uks305 = unit_nm * unit_factor_Y
+      uks307 = unit_nm * unit_factor_X
+      uks309 = unit_2nd * unit_factor_X * unit_factor_Y ^ 1
+      uks311 = unit_3rd * unit_factor_X * unit_factor_Y ^ 2
+      uks313 = unit_4th * unit_factor_X * unit_factor_Y ^ 3
+      uks315 = unit_5th * unit_factor_X * unit_factor_Y ^ 4
+      uks317 = unit_6th * unit_factor_X * unit_factor_Y ^ 5
+      us319 = unit_2nd * unit_factor_X * unit_factor_Y
+      us321 = unit_2nd * unit_factor_X * unit_factor_Y
+      us323 = unit_2nd * unit_factor_X * unit_factor_Y
+      us325 = unit_2nd * unit_factor_X * unit_factor_Y
+      us327 = unit_2nd * unit_factor_X * unit_factor_Y
+      us329 = unit_2nd * unit_factor_X * unit_factor_Y
+      us331 = unit_2nd * unit_factor_X * unit_factor_Y
+      uks333 = unit_5th * unit_factor_X ^ 4 * unit_factor_Y
+      uks335 = unit_4th * unit_factor_X ^ 3 * unit_factor_Y
+      uks337 = unit_3rd * unit_factor_X ^ 2 * unit_factor_Y
+      uks339 = unit_2nd * unit_factor_X ^ 1 * unit_factor_Y
+      uks341 = unit_nm * unit_factor_Y
+
+
+
+      uk2 = unit_off * 1
+      uk4 = unit_1st * unit_factor_Y
+      uk6 = unit_1st * unit_factor_X
+      uk8 = unit_2nd * unit_factor_Y ^ 2
+      uk10 = unit_2nd * unit_factor_Y * unit_factor_X
+      uk12 = unit_2nd * unit_factor_X ^ 2
+      uk14 = unit_3rd * unit_factor_Y ^ 3
+      uk16 = unit_3rd * unit_factor_Y ^ 2 * unit_factor_X
+      uk18 = unit_3rd * unit_factor_Y * unit_factor_X ^ 2
+      uk20 = unit_3rd * unit_factor_X ^ 3
+      uk22 = unit_4th * unit_factor_Y ^ 4
+      uk24 = unit_4th * unit_factor_Y ^ 3 * unit_factor_X
+      uk26 = unit_4th * unit_factor_Y ^ 2 * unit_factor_X ^ 2
+      uk28 = unit_4th * unit_factor_Y * unit_factor_X ^ 3
+      uk30 = unit_4th * unit_factor_X ^ 4
+      uk32 = unit_5th * unit_factor_Y ^ 5
+      uk34 = unit_5th * unit_factor_Y ^ 4 * unit_factor_X
+      uk36 = unit_5th * unit_factor_Y ^ 3 * unit_factor_X ^ 2
+      uk38 = unit_5th * unit_factor_Y ^ 2 * unit_factor_X ^ 3
+      uk40 = unit_5th * unit_factor_Y * unit_factor_X ^ 4
+      uks42 = unit_nm * unit_factor_X
+      uks44 = unit_nm * unit_factor_Y
+      uk46 = unit_6th * unit_factor_Y ^ 5 * unit_factor_X ^ 1
+      uk48 = unit_6th * unit_factor_Y ^ 4 * unit_factor_X ^ 2
+      uk50 = unit_6th * unit_factor_Y ^ 3 * unit_factor_X ^ 3
+      uk52 = unit_6th * unit_factor_Y ^ 2 * unit_factor_X ^ 4
+      uks54 = unit_2nd * unit_factor_Y ^ 1 * unit_factor_X
+      uks56 = unit_nm * unit_factor_X
+      uks58 = unit_nm * unit_factor_Y
+      uks60 = unit_2nd * unit_factor_Y * unit_factor_X ^ 1
+      uk62 = unit_7th * unit_factor_Y ^ 5 * unit_factor_X ^ 2
+      uk64 = unit_7th * unit_factor_Y ^ 4 * unit_factor_X ^ 3
+      uk66 = unit_7th * unit_factor_Y ^ 3 * unit_factor_X ^ 4
+      uks68 = unit_3rd * unit_factor_Y ^ 2 * unit_factor_X
+      uks70 = unit_2nd * unit_factor_Y ^ 1 * unit_factor_X
+      uks72 = unit_nm * unit_factor_X
+      uks74 = unit_nm * unit_factor_Y
+      uks76 = unit_2nd * unit_factor_Y * unit_factor_X ^ 1
+      uks78 = unit_3rd * unit_factor_Y * unit_factor_X ^ 2
+      uk80 = unit_8th * unit_factor_Y ^ 5 * unit_factor_X ^ 3
+      uk82 = unit_8th * unit_factor_Y ^ 4 * unit_factor_X ^ 4
+      uks84 = unit_4th * unit_factor_Y ^ 3 * unit_factor_X
+      uks86 = unit_3rd * unit_factor_Y ^ 2 * unit_factor_X
+      uks88 = unit_2nd * unit_factor_Y ^ 1 * unit_factor_X
+      uks90 = unit_nm * unit_factor_X
+      uks92 = unit_nm * unit_factor_Y
+      uks94 = unit_2nd * unit_factor_Y * unit_factor_X ^ 1
+      uks96 = unit_3rd * unit_factor_Y * unit_factor_X ^ 2
+      uks98 = unit_4th * unit_factor_Y * unit_factor_X ^ 3
+      uk100 = unit_9th * unit_factor_Y ^ 5 * unit_factor_X ^ 4
+      uks102 = unit_5th * unit_factor_Y ^ 4 * unit_factor_X
+      uks104 = unit_4th * unit_factor_Y ^ 3 * unit_factor_X
+      uks106 = unit_3rd * unit_factor_Y ^ 2 * unit_factor_X
+      uks108 = unit_2nd * unit_factor_Y ^ 1 * unit_factor_X
+      uks110 = unit_nm * unit_factor_X
+      uks112 = unit_nm * unit_factor_Y
+      uks114 = unit_2nd * unit_factor_Y * unit_factor_X ^ 1
+      uks116 = unit_3rd * unit_factor_Y * unit_factor_X ^ 2
+      uks118 = unit_4th * unit_factor_Y * unit_factor_X ^ 3
+      uks120 = unit_5th * unit_factor_Y * unit_factor_X ^ 4
+      uks122 = unit_6th * unit_factor_Y ^ 5 * unit_factor_X
+      uks124 = unit_5th * unit_factor_Y ^ 4 * unit_factor_X
+      uks126 = unit_4th * unit_factor_Y ^ 3 * unit_factor_X
+      uks128 = unit_3rd * unit_factor_Y ^ 2 * unit_factor_X
+      uks130 = unit_2nd * unit_factor_Y ^ 1 * unit_factor_X
+      uks132 = unit_nm * unit_factor_X
+      uks134 = unit_nm * unit_factor_Y
+      uks136 = unit_2nd * unit_factor_Y * unit_factor_X ^ 1
+      uks138 = unit_3rd * unit_factor_Y * unit_factor_X ^ 2
+      uks140 = unit_4th * unit_factor_Y * unit_factor_X ^ 3
+      uks142 = unit_5th * unit_factor_Y * unit_factor_X ^ 4
+      us144 = unit_2nd * unit_factor_Y * unit_factor_X
+      uks146 = unit_6th * unit_factor_Y ^ 5 * unit_factor_X
+      uks148 = unit_5th * unit_factor_Y ^ 4 * unit_factor_X
+      uks150 = unit_4th * unit_factor_Y ^ 3 * unit_factor_X
+      uks152 = unit_3rd * unit_factor_Y ^ 2 * unit_factor_X
+      uks154 = unit_2nd * unit_factor_Y ^ 1 * unit_factor_X
+      uks156 = unit_nm * unit_factor_X
+      uks158 = unit_nm * unit_factor_Y
+      uks160 = unit_2nd * unit_factor_Y * unit_factor_X ^ 1
+      uks162 = unit_3rd * unit_factor_Y * unit_factor_X ^ 2
+      uks164 = unit_4th * unit_factor_Y * unit_factor_X ^ 3
+      uks166 = unit_5th * unit_factor_Y * unit_factor_X ^ 4
+      us168 = unit_2nd * unit_factor_Y * unit_factor_X
+      us170 = unit_2nd * unit_factor_Y * unit_factor_X
+      uks172 = unit_6th * unit_factor_Y ^ 5 * unit_factor_X
+      uks174 = unit_5th * unit_factor_Y ^ 4 * unit_factor_X
+      uks176 = unit_4th * unit_factor_Y ^ 3 * unit_factor_X
+      uks178 = unit_3rd * unit_factor_Y ^ 2 * unit_factor_X
+      uks180 = unit_2nd * unit_factor_Y ^ 1 * unit_factor_X
+      uks182 = unit_nm * unit_factor_X
+      uks184 = unit_nm * unit_factor_Y
+      uks186 = unit_2nd * unit_factor_Y * unit_factor_X ^ 1
+      uks188 = unit_3rd * unit_factor_Y * unit_factor_X ^ 2
+      uks190 = unit_4th * unit_factor_Y * unit_factor_X ^ 3
+      uks192 = unit_5th * unit_factor_Y * unit_factor_X ^ 4
+      us194 = unit_2nd * unit_factor_Y * unit_factor_X
+      us196 = unit_2nd * unit_factor_Y * unit_factor_X
+      us198 = unit_2nd * unit_factor_Y * unit_factor_X
+      uks200 = unit_6th * unit_factor_Y ^ 5 * unit_factor_X
+      uks202 = unit_5th * unit_factor_Y ^ 4 * unit_factor_X
+      uks204 = unit_4th * unit_factor_Y ^ 3 * unit_factor_X
+      uks206 = unit_3rd * unit_factor_Y ^ 2 * unit_factor_X
+      uks208 = unit_2nd * unit_factor_Y ^ 1 * unit_factor_X
+      uks210 = unit_nm * unit_factor_X
+      uks212 = unit_nm * unit_factor_Y
+      uks214 = unit_2nd * unit_factor_Y * unit_factor_X ^ 1
+      uks216 = unit_3rd * unit_factor_Y * unit_factor_X ^ 2
+      uks218 = unit_4th * unit_factor_Y * unit_factor_X ^ 3
+      uks220 = unit_5th * unit_factor_Y * unit_factor_X ^ 4
+      us222 = unit_2nd * unit_factor_Y * unit_factor_X
+      us224 = unit_2nd * unit_factor_Y * unit_factor_X
+      us226 = unit_2nd * unit_factor_Y * unit_factor_X
+      us228 = unit_2nd * unit_factor_Y * unit_factor_X
+      uks230 = unit_6th * unit_factor_Y ^ 5 * unit_factor_X
+      uks232 = unit_5th * unit_factor_Y ^ 4 * unit_factor_X
+      uks234 = unit_4th * unit_factor_Y ^ 3 * unit_factor_X
+      uks236 = unit_3rd * unit_factor_Y ^ 2 * unit_factor_X
+      uks238 = unit_2nd * unit_factor_Y ^ 1 * unit_factor_X
+      uks240 = unit_nm * unit_factor_X
+      uks242 = unit_nm * unit_factor_Y
+      uks244 = unit_2nd * unit_factor_Y * unit_factor_X ^ 1
+      uks246 = unit_3rd * unit_factor_Y * unit_factor_X ^ 2
+      uks248 = unit_4th * unit_factor_Y * unit_factor_X ^ 3
+      uks250 = unit_5th * unit_factor_Y * unit_factor_X ^ 4
+      us252 = unit_2nd * unit_factor_Y * unit_factor_X
+      us254 = unit_2nd * unit_factor_Y * unit_factor_X
+      us256 = unit_2nd * unit_factor_Y * unit_factor_X
+      us258 = unit_2nd * unit_factor_Y * unit_factor_X
+      us260 = unit_2nd * unit_factor_Y * unit_factor_X
+      uks262 = unit_6th * unit_factor_Y ^ 5 * unit_factor_X
+      uks264 = unit_5th * unit_factor_Y ^ 4 * unit_factor_X
+      uks266 = unit_4th * unit_factor_Y ^ 3 * unit_factor_X
+      uks268 = unit_3rd * unit_factor_Y ^ 2 * unit_factor_X
+      uks270 = unit_2nd * unit_factor_Y ^ 1 * unit_factor_X
+      uks272 = unit_nm * unit_factor_X
+      uks274 = unit_nm * unit_factor_Y
+      uks276 = unit_2nd * unit_factor_Y * unit_factor_X ^ 1
+      uks278 = unit_3rd * unit_factor_Y * unit_factor_X ^ 2
+      uks280 = unit_4th * unit_factor_Y * unit_factor_X ^ 3
+      uks282 = unit_5th * unit_factor_Y * unit_factor_X ^ 4
+      us284 = unit_2nd * unit_factor_Y * unit_factor_X
+      us286 = unit_2nd * unit_factor_Y * unit_factor_X
+      us288 = unit_2nd * unit_factor_Y * unit_factor_X
+      us290 = unit_2nd * unit_factor_Y * unit_factor_X
+      us292 = unit_2nd * unit_factor_Y * unit_factor_X
+      us294 = unit_2nd * unit_factor_Y * unit_factor_X
+      uks296 = unit_6th * unit_factor_Y ^ 5 * unit_factor_X
+      uks298 = unit_5th * unit_factor_Y ^ 4 * unit_factor_X
+      uks300 = unit_4th * unit_factor_Y ^ 3 * unit_factor_X
+      uks302 = unit_3rd * unit_factor_Y ^ 2 * unit_factor_X
+      uks304 = unit_2nd * unit_factor_Y ^ 1 * unit_factor_X
+      uks306 = unit_nm * unit_factor_X
+      uks308 = unit_nm * unit_factor_Y
+      uks310 = unit_2nd * unit_factor_Y * unit_factor_X ^ 1
+      uks312 = unit_3rd * unit_factor_Y * unit_factor_X ^ 2
+      uks314 = unit_4th * unit_factor_Y * unit_factor_X ^ 3
+      uks316 = unit_5th * unit_factor_Y * unit_factor_X ^ 4
+      us318 = unit_2nd * unit_factor_Y * unit_factor_X
+      us320 = unit_2nd * unit_factor_Y * unit_factor_X
+      us322 = unit_2nd * unit_factor_Y * unit_factor_X
+      us324 = unit_2nd * unit_factor_Y * unit_factor_X
+      us326 = unit_2nd * unit_factor_Y * unit_factor_X
+      us328 = unit_2nd * unit_factor_Y * unit_factor_X
+      us330 = unit_2nd * unit_factor_Y * unit_factor_X
+      uks332 = unit_6th * unit_factor_Y ^ 5 * unit_factor_X
+      uks334 = unit_5th * unit_factor_Y ^ 4 * unit_factor_X
+      uks336 = unit_4th * unit_factor_Y ^ 3 * unit_factor_X
+      uks338 = unit_3rd * unit_factor_Y ^ 2 * unit_factor_X
+      uks340 = unit_2nd * unit_factor_Y ^ 1 * unit_factor_X
+      uks342 = unit_nm * unit_factor_X
+      
+      
+ 'maxK 구하기 17th order full 회귀식==========================================================================================================================================
+ 
+    Dim multi_x() As Variant
+    Dim multi_y() As Variant
+                                   
+                                
+
+    
+          
+    multi_x = Array(uk1, _
+                         uk3, -uk5, _
+                         uk7, uk9, uk11, _
+                         uk13, uk15, uk17, uk19, _
+                         uk21, uk23, uk25, uk27, uk29, _
+                         uks31, uk33, uk35, uk37, uk39, uk41, _
+                         uks43, uks45, uk47, uk49, uk51, uk53, uks55, _
+                         uks57, uks59, uks61, uk63, uk65, uk67, uks69, uks71, _
+                         uks73, uks75, uks77, uks79, uk81, uk83, uks85, uks87, uks89, _
+                         uks91, uks93, uks95, uks97, uks99, uk101, uks103, uks105, uks107, uks109, _
+                         uks111, uks113, uks115, uks117, uks119, uks121, uks123, uks125, uks127, uks129, uks131, _
+                         uks133, uks135, uks137, uks139, uks141, uks143, us145, uks147, uks149, uks151, uks153, uks155, _
+                         uks157, uks159, uks161, uks163, uks165, uks167, us169, us171, uks173, uks175, uks177, uks179, uks181, _
+                         uks183, uks185, uks187, uks189, uks191, uks193, us195, us197, us199, uks201, uks203, uks205, uks207, uks209, _
+                         uks211, uks213, uks215, uks217, uks219, uks221, us223, us225, us227, us229, uks231, uks233, uks235, uks237, uks239, _
+                         uks241, uks243, uks245, uks247, uks249, uks251, us253, us255, us257, us259, us261, uks263, uks265, uks267, uks269, uks271, _
+                         uks273, uks275, uks277, uks279, uks281, uks283, us285, us287, us289, us291, us293, us295, uks297, uks299, uks301, uks303, uks305, _
+                         uks307, uks309, uks311, uks313, uks315, uks317, us319, us321, us323, us325, us327, us329, us331, uks333, uks335, uks337, uks339, uks341)
+
+    
+    multi_y = Array(uk2, _
+                          uk4, uk6, _
+                          uk8, uk10, uk12, _
+                          uk14, uk16, uk18, uk20, _
+                          uk22, uk24, uk26, uk28, uk30, _
+                          uk32, uk34, uk36, uk38, uk40, uks42, _
+                          uks44, uk46, uk48, uk50, uk52, uks54, uks56, _
+                          uks58, uks60, uk62, uk64, uk66, uks68, uks70, uks72, _
+                          uks74, uks76, uks78, uk80, uk82, uks84, uks86, uks88, uks90, _
+                          uks92, uks94, uks96, uks98, uk100, uks102, uks104, uks106, uks108, uks110, _
+                          uks112, uks114, uks116, uks118, uks120, uks122, uks124, uks126, uks128, uks130, uks132, _
+                          uks134, uks136, uks138, uks140, uks142, us144, uks146, uks148, uks150, uks152, uks154, uks156, _
+                          uks158, uks160, uks162, uks164, uks166, us168, us170, uks172, uks174, uks176, uks178, uks180, uks182, _
+                          uks184, uks186, uks188, uks190, uks192, us194, us196, us198, uks200, uks202, uks204, uks206, uks208, uks210, _
+                          uks212, uks214, uks216, uks218, uks220, us222, us224, us226, us228, uks230, uks232, uks234, uks236, uks238, uks240, _
+                          uks242, uks244, uks246, uks248, uks250, us252, us254, us256, us258, us260, uks262, uks264, uks266, uks268, uks270, uks272, _
+                          uks274, uks276, uks278, uks280, uks282, us284, us286, us288, us290, us292, us294, uks296, uks298, uks300, uks302, uks304, uks306, _
+                          uks308, uks310, uks312, uks314, uks316, us318, us320, us322, us324, us326, us328, us330, uks332, uks334, uks336, uks338, uks340, uks342)
+ 
+
+
+
+
+
+   Call max_K_calculation_reticle_CPE(maxK_reticle, maxKx_reticle, maxKy_reticle, max_K_SIZE_X, max_K_SIZE_Y, multi_x, multi_y, how_many_tests)
+   Call CPE_span(maxK_reticle, maxKx_reticle, maxKy_reticle, how_many_tests, max_K_SIZE, max_K_SIZE_X, max_K_SIZE_Y, unit_factor_X, unit_factor_Y, Span_OVO2, Span_OVO3_22p, Span_OVO3_33p, Span_OVO3_38p, Span_OVO4_57p, Span_OVO5_170p)
+   Call Ridge_tapering(max_K_SIZE, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper)
+
+   
+'   ===================================================================================================================================================================================
+   
+   
+   
+   If (fallback_option = 4 Or fallback_option = 5) And Ridge_regression = True Then
+
+
+        Call ridge_initial_parameter(initial_ridge_X, initial_ridge_Y, initial_Gopt_X, initial_Gopt_Y, G_opt_tolerlance_initial, regression_order, how_many_tests, Ridge_parameter_XY, max_K_SIZE, number_of_fitting_points, Vgrid_XY, _
+                                 unit_factor_X, unit_factor_Y, virtual_shotLOC_ArrX, virtual_shotLOC_ArrY, shotLOC_ArrX, shotLOC_ArrY, _
+                                  k_ArrX, k_ArrY, d_ArrX, d_ArrY, kn_X, kn_Y, X_ArrX, X_ArrY, Xt_ArrX, Xt_ArrY, inverse_k_Arr_X, inverse_k_Arr_Y, _
+                                  hat_matrix_X, hat_matrix_Y, ridge_valve_1st, ridge_valve_3rd, ridge_valve_hyper, G_opt_spec)
+
+
+  End If
+
